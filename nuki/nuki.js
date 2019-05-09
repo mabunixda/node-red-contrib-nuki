@@ -37,7 +37,6 @@ module.exports = function (RED) {
 
         data.push(nuki);
       }
-      console.log(data);
       result = {
         state: 'ok',
         msg: 'got nuki list',
@@ -61,7 +60,7 @@ module.exports = function (RED) {
     node.bridge = bridgeAPI.Bridge(node.host, node.port, node.credentials.token);
     node.bridge.list().then(function getNuki(nukis) {
       node.nukis = nukis;
-      console.log("Got " + node.nukis.length + " nukis from bridge " + node.host);
+      node.log("Got " + node.nukis.length + " nukis from bridge " + node.host);
     });
   }
 
@@ -93,6 +92,7 @@ module.exports = function (RED) {
     } catch (err) {
       payload = event;
     }
+    this.log("Bridge Payload: " + JSON.stringify(payload));
     for (var i = 0; i < this._bridgeNodes.length; i++) {
       if (this._bridgeNodes[i].id !== uuid) {
         continue;
@@ -141,7 +141,7 @@ module.exports = function (RED) {
     } catch (err) {
       payload = event;
     }
-    console.log(payload);
+    this.log("Nuki Payload: " + JSON.stringify(payload));
     var msg = {
       topic: payload.topic,
     }
