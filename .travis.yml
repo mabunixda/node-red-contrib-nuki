@@ -1,5 +1,7 @@
 language: node_js
 node_js:
+  - "12"
+  - "11"
   - "10"
   - "9"
   - "8"
@@ -12,11 +14,15 @@ cache:
 
 before_install:
   - npm install -g npm-check
+  - npm install -g mocha
+  - npm install -g eslint
 
 install:
   - npm install
 
 script:
-  - npm-check
-  - echo "tests are still missing :("
+  - grep console -R nuki | grep -v "no controller id found" || echo "no console logging found"
+  - npm-check --skip-unused
+  - ./scripts/lint.sh
+  - npm test
 
