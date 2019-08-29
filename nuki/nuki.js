@@ -172,26 +172,29 @@ module.exports = function(RED) {
 
         if (payload.topic.toLowerCase() === 'lockaction') {
           const action = lockActions[payload.payload];
-          currentNuki.lockState().then(function (lockState) {
-            var state = getLockState(lockState);
+          currentNuki.lockState().then(function(lockState) {
+            const state = getLockState(lockState);
 
-            if (state === lockStates.UNCALIBRATED || state === lockStates.UNDEFINED) {
+            if (state === lockStates.UNCALIBRATED ||
+                state === lockStates.UNDEFINED) {
               // uncalibrated and undefined status should be avoided
               return;
             } else if (state === lockStates.LOCKED) {
               // try not to unlock when state is not locked
-              if (!(action === lockActions.UNLOCK || action === lockActions.UNLATCH)) {
+              if (!(action === lockActions.UNLOCK ||
+                    action === lockActions.UNLATCH)) {
                 return;
               }
             } else if (state === lockStates.UNLOCKED) {
               // try not to lock when it states other than locked
-              if (!(action === lockActions.LOCK || action === lockActions.LOCK_N_GO)) {
+              if (!(action === lockActions.LOCK ||
+                    action === lockActions.LOCK_N_GO)) {
                 return;
               }
             } else {
               return;
             }
-            currentNuki.lockAction(action).then(function (status) {
+            currentNuki.lockAction(action).then(function(status) {
               msg.payload = status;
               underControl.send(msg);
             });
