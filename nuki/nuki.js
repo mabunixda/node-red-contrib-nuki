@@ -146,12 +146,13 @@ module.exports = function(RED) {
   };
   NukiBridge.prototype.handleEvent = function(uuid, event) {
     let payload;
+    const node = this;
     try {
       payload = JSON.parse(event);
     } catch (err) {
       payload = event;
     }
-    this.log('Nuki Payload: ' + JSON.stringify(payload));
+    node.log('Nuki Payload: ' + JSON.stringify(payload));
     const msg = {
       topic: payload.topic,
     };
@@ -172,31 +173,51 @@ module.exports = function(RED) {
 
         if (payload.topic.toLowerCase() === 'lockaction') {
           const action = lockActions[payload.payload];
+          if (action === undefined || action === null) {
+            node.warn('Could not transform payload into aciton: ' +
+             payload.payload);
+            return;
+          }
           currentNuki.lockState().then(function(lockState) {
             const state = getLockState(lockState);
-
-            if (state === lockStates.UNCALIBRATED ||
-                state === lockStates.UNDEFINED) {
+            node.log('current lock state: ' + state + '(' + lockState + ')' +
+            ', action is ' + action + '(' + payload.payload + ')');
+            if (lockState === lockStates.UNCALIBRATED ||
+              lockState === lockStates.UNDEFINED) {
               // uncalibrated and undefined status should be avoided
+              msg.payload = {'error':
+                'could not process action! lock is in state ' + lockState};
+              underControl.send(msg);
               return;
-            } else if (state === lockStates.LOCKED) {
+            }
+            if (lockState === lockStates.LOCKED) {
               // try not to unlock when state is not locked
               if (!(action === lockActions.UNLOCK ||
-                    action === lockActions.UNLATCH)) {
+                action === lockActions.UNLATCH)) {
+                msg.payload = {'error':
+                'could not lock! lock is in state ' +lockState};
+                underControl.send(msg);
                 return;
               }
-            } else if (state === lockStates.UNLOCKED) {
+            } else if (lockState === lockStates.UNLOCKED) {
               // try not to lock when it states other than locked
               if (!(action === lockActions.LOCK ||
-                    action === lockActions.LOCK_N_GO)) {
+                action === lockActions.LOCK_N_GO)) {
+                msg.payload = {'error':
+                'could not unlock! lock is in state ' + lockState};
+                underControl.send(msg);
                 return;
               }
             } else {
+              msg.payload = {'error':
+              'Could not find action based on state:' + lockState};
+              underControl.send(msg);
               return;
             }
             currentNuki.lockAction(action).then(function(status) {
               msg.payload = status;
               underControl.send(msg);
+              return;
             });
           });
         } else if (payload.topic.toLowerCase() === 'lockstatus') {
@@ -207,11 +228,13 @@ module.exports = function(RED) {
               value: lockState,
             };
             underControl.send(msg);
+            return;
           });
         }
-        return;
       }
     }
+    msg.payload = {'error': 'Could not find a lock'};
+    node.send(msg);
   };
 
   RED.nodes.registerType('nuki-bridge', NukiBridge, {
