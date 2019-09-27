@@ -202,7 +202,8 @@ module.exports = function(RED) {
             } else if (lockState === lockStates.UNLOCKED) {
               // try not to lock when it states other than locked
               if (!(action === lockActions.LOCK ||
-                action === lockActions.LOCK_N_GO)) {
+                action === lockActions.LOCK_N_GO ||
+                   action === lockActions.UNLATCH))) {
                 msg.payload = {'error':
                 'could not unlock! lock is in state ' + lockState};
                 underControl.send(msg);
