@@ -174,7 +174,7 @@ module.exports = function(RED) {
         if (payload.topic.toLowerCase() === 'lockaction') {
           const action = lockActions[payload.payload];
           if (action === undefined || action === null) {
-            node.warn('Could not transform payload into aciton: ' +
+            node.warn('Could not transform payload into action: ' +
              payload.payload);
             return;
           }
@@ -190,30 +190,7 @@ module.exports = function(RED) {
               underControl.send(msg);
               return;
             }
-            if (lockState === lockStates.LOCKED) {
-              // try not to unlock when state is not locked
-              if (!(action === lockActions.UNLOCK ||
-                action === lockActions.UNLATCH)) {
-                msg.payload = {'error':
-                'could not lock! lock is in state ' +lockState};
-                underControl.send(msg);
-                return;
-              }
-            } else if (lockState === lockStates.UNLOCKED) {
-              // try not to lock when it states other than locked
-              if (!(action === lockActions.LOCK ||
-                action === lockActions.LOCK_N_GO)) {
-                msg.payload = {'error':
-                'could not unlock! lock is in state ' + lockState};
-                underControl.send(msg);
-                return;
-              }
-            } else {
-              msg.payload = {'error':
-              'Could not find action based on state:' + lockState};
-              underControl.send(msg);
-              return;
-            }
+
             currentNuki.lockAction(action).then(function(status) {
               msg.payload = status;
               underControl.send(msg);
