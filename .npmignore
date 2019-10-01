@@ -2,3 +2,6 @@
 *.md
 Makefile
 *.sh
+.eslintrc.yml
+data
+.github
