@@ -2,6 +2,8 @@
 
 [![Greenkeeper badge](https://badges.greenkeeper.io/mabunixda/node-red-contrib-nuki.svg)](https://greenkeeper.io/)
 
+![Build and Publish](https://github.com/mabunixda/node-red-contrib-nuki/workflows/Build%20and%20Publish/badge.svg)
+
 This node can control Nuki Smart Locks with the help of Nuki Bridges. 
 Also Nuki Bridges can be handled by the node. It uses [nuki-bridge-api](https://github.com/Mik13/nuki-bridge-api/) based on the Nuki Bridge API documentation.
 
