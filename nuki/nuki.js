@@ -96,22 +96,19 @@ module.exports = function(RED) {
     });
   };
   NukiBridge.prototype.handleBridgeEvent = function(uuid, event) {
-    let payload;
+    let msg;
     try {
-      payload = JSON.parse(event);
+      msg = JSON.parse(event);
     } catch (err) {
-      payload = event;
+      msg = event;
     }
-    this.log('Bridge Payload: ' + JSON.stringify(payload));
+    this.log('Bridge Payload: ' + JSON.stringify(msg));
     for (let i = 0; i < this._bridgeNodes.length; i++) {
       if (this._bridgeNodes[i].id !== uuid) {
         continue;
       }
       const currentNode = this._bridgeNodes[i];
-      const msg = {
-        topic: payload.topic,
-        bridge: currentNode.name,
-      };
+      msg.bridge=currentNode.name;
 
       if (payload.topic.toLowerCase() === 'reboot') {
         this.bridge.reboot().then(function(response) {
@@ -150,17 +147,14 @@ module.exports = function(RED) {
     }
   };
   NukiBridge.prototype.handleEvent = function(uuid, event) {
-    let payload;
+    let msg;
     const node = this;
     try {
-      payload = JSON.parse(event);
+      msg = JSON.parse(event);
     } catch (err) {
-      payload = event;
+      msg = event;
     }
-    node.log('Nuki Payload: ' + JSON.stringify(payload));
-    const msg = {
-      topic: payload.topic,
-    };
+    node.log('Nuki Payload: ' + JSON.stringify(msg));
 
     for (let i = 0; i < this._nukiNodes.length; i++) {
       if (this._nukiNodes[i].id !== uuid) {
