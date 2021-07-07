@@ -1,3 +1,21 @@
+<a name="v1.0.1"></a>
+# [v1.0.1](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.0.1) - 07 Jul 2021
+
+## 1.0.1 (2021-07-07)
+
+#### Bug Fixes
+
+* update on issue #21 (#23) (bf64d2c6)
+
+#### Build
+
+* update devdeps (4b584610)
+
+
+
+[Changes][v1.0.1]
+
+
 <a name="v1.0.0"></a>
 # [v1.0.0](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.0.0) - 04 Mar 2021
 
@@ -20,6 +38,7 @@ initial published version on npm.
 [Changes][0.2.0]
 
 
+[v1.0.1]: https://github.com/mabunixda/node-red-contrib-nuki/compare/v1.0.0...v1.0.1
 [v1.0.0]: https://github.com/mabunixda/node-red-contrib-nuki/compare/0.2.0...v1.0.0
 [0.2.0]: https://github.com/mabunixda/node-red-contrib-nuki/tree/0.2.0
 
