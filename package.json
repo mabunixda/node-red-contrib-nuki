@@ -15,11 +15,12 @@
     }
   },
   "dependencies": {
+    "npm-check": "^5.9.2",
     "nuki-bridge-api": "^1.7.0"
   },
   "devDependencies": {
     "babel-eslint": "^10.1.0",
-    "eslint": "^7.21.0",
+    "eslint": "^7.30.0",
     "eslint-config-google": "^0.14.0",
     "eslint-plugin-standard": "^5.0.0"
   },
