@@ -140,6 +140,11 @@ module.exports = function(RED) {
           msg.payload = response;
           currentNode.send(msg);
         });
+      } else if (payload.topic.toLowerCase() === 'list') {
+        this.bridge.list().then(function(response) {
+          msg.payload = response;
+          currentNode.send(msg);
+        });
       }
       return;
     }
