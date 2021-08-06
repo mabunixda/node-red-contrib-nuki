@@ -194,8 +194,18 @@ module.exports = function(RED) {
               msg.payload = status;
               underControl.send(msg);
               return;
-            });
-          });
+            })
+	    .catch(function(err) {
+	      msg.payload = {'error': 'failed sending lock action command'};
+	      underControl.send(msg);
+	      return;
+	    });
+          })
+	  .catch(function(err) {
+	    msg.payload = {'error': 'can not get lock state'};
+	    underControl.send(msg);
+	    return;
+	  });
         } else if (payload.topic.toLowerCase() === 'lockstatus') {
           currentNuki.lockState().then(function(lockState) {
             const state = getLockState(lockState);
@@ -205,7 +215,12 @@ module.exports = function(RED) {
             };
             underControl.send(msg);
             return;
-          });
+          })
+	  .catch(function(err) {
+	    msg.payload = {'error': 'can not get lock state'};
+	    underControl.send(msg);
+	    return;
+	  });
         }
       }
     }
