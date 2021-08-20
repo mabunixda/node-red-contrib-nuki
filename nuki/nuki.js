@@ -110,34 +110,34 @@ module.exports = function(RED) {
       const currentNode = this._bridgeNodes[i];
       msg.bridge=currentNode.name;
 
-      if (payload.topic.toLowerCase() === 'reboot') {
+      if (msg.topic.toLowerCase() === 'reboot') {
         this.bridge.reboot().then(function(response) {
           msg.payload = response;
           currentNode.send(msg);
         });
-      } else if (payload.topic.toLowerCase() === 'fwupdate') {
+      } else if (msg.topic.toLowerCase() === 'fwupdate') {
         this.bridge.fwupdate().then(function(response) {
           msg.payload = response;
           currentNode.send(msg);
         });
-      } else if (payload.topic.toLowerCase() === 'info') {
+      } else if (msg.topic.toLowerCase() === 'info') {
         this.bridge.info().then(function(response) {
           msg.payload = response;
           currentNode.send(msg);
         });
-      } else if (payload.topic.toLowerCase() === 'log') {
+      } else if (msg.topic.toLowerCase() === 'log') {
         const offset = undefined;
         const count = undefined;
         this.bridge.log(offset, count).then(function(logLines) {
           msg.payload = logLines;
           currentNode.send(msg);
         });
-      } else if (payload.topic.toLowerCase() === 'clearlog') {
+      } else if (msg.topic.toLowerCase() === 'clearlog') {
         this.bridge.clearlog().then(function(response) {
           msg.payload = response;
           currentNode.send(msg);
         });
-      } else if (payload.topic.toLowerCase() === 'list') {
+      } else if (msg.topic.toLowerCase() === 'list') {
         this.bridge.list().then(function(response) {
           msg.payload = response;
           currentNode.send(msg);
@@ -170,17 +170,17 @@ module.exports = function(RED) {
         msg.nuki = this.nukis[x].name;
         msg.nukiId = this.nukis[x].nukiId;
 
-        if (payload.topic.toLowerCase() === 'lockaction') {
-          const action = lockActions[payload.payload];
+        if (msg.topic.toLowerCase() === 'lockaction') {
+          const action = lockActions[msg.payload];
           if (action === undefined || action === null) {
             node.warn('Could not transform payload into action: ' +
-             payload.payload);
+             msg.payload);
             return;
           }
           currentNuki.lockState().then(function(lockState) {
             const state = getLockState(lockState);
             node.log('current lock state: ' + state + '(' + lockState + ')' +
-            ', action is ' + action + '(' + payload.payload + ')');
+            ', action is ' + action + '(' + msg.payload + ')');
             if (lockState === lockStates.UNCALIBRATED ||
               lockState === lockStates.UNDEFINED) {
               // uncalibrated and undefined status should be avoided
@@ -196,7 +196,7 @@ module.exports = function(RED) {
               return;
             });
           });
-        } else if (payload.topic.toLowerCase() === 'lockstatus') {
+        } else if (msg.topic.toLowerCase() === 'lockstatus') {
           currentNuki.lockState().then(function(lockState) {
             const state = getLockState(lockState);
             msg.payload = {
