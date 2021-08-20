@@ -1,3 +1,5 @@
+const nukiBridgeApi = require('nuki-bridge-api');
+
 module.exports = function(RED) {
   'use strict';
   const BridgeAPI = require('nuki-bridge-api');
@@ -38,7 +40,6 @@ module.exports = function(RED) {
         const nuki = {};
         nuki.id = n.nukiId;
         nuki.name = n.name;
-
         data.push(nuki);
       }
       result = {
@@ -68,11 +69,27 @@ module.exports = function(RED) {
     node.bridge = new BridgeAPI.Bridge(node.host,
         node.port,
         node.credentials.token);
-    node.bridge.list().then(function GetNuki(nukis) {
+    node.bridge.list().then(function listNukis(nukis) {
       node.nukis = nukis;
-      node.log('Got ' + node.nukis.length + ' nukis from bridge ' + node.host);
+      node.log('Got ' + node.nukis.length +
+                ' nukis from bridge '+ node.host +
+                ' at already registered ' + node._nukiNodes.length);
+      for (let x = 0; x < node._nukiNodes.length; ++x) {
+        const current = node._nukiNodes[x];
+        current.attachHandlers();
+      }
     });
   }
+
+  NukiBridge.prototype.getNuki = function(nukiId) {
+    const node = this;
+    for (let x = 0; x <node.nukis.length; ++x) {
+      if (node.nukis[x].nukiId == nukiId) {
+        return node.nukis[x].nuki;
+      }
+    }
+    return undefined;
+  };
 
   NukiBridge.prototype.registerNukiNode = function(handler) {
     this._nukiNodes.push(handler);
@@ -95,138 +112,8 @@ module.exports = function(RED) {
       }
     });
   };
-  NukiBridge.prototype.handleBridgeEvent = function(uuid, event) {
-    let msg;
-    try {
-      msg = JSON.parse(event);
-    } catch (err) {
-      msg = event;
-    }
-    this.log('Bridge Payload: ' + JSON.stringify(msg));
-    for (let i = 0; i < this._bridgeNodes.length; i++) {
-      if (this._bridgeNodes[i].id !== uuid) {
-        continue;
-      }
-      const currentNode = this._bridgeNodes[i];
-      msg.bridge=currentNode.name;
 
-      if (payload.topic.toLowerCase() === 'reboot') {
-        this.bridge.reboot().then(function(response) {
-          msg.payload = response;
-          currentNode.send(msg);
-        });
-      } else if (payload.topic.toLowerCase() === 'fwupdate') {
-        this.bridge.fwupdate().then(function(response) {
-          msg.payload = response;
-          currentNode.send(msg);
-        });
-      } else if (payload.topic.toLowerCase() === 'info') {
-        this.bridge.info().then(function(response) {
-          msg.payload = response;
-          currentNode.send(msg);
-        });
-      } else if (payload.topic.toLowerCase() === 'log') {
-        const offset = undefined;
-        const count = undefined;
-        this.bridge.log(offset, count).then(function(logLines) {
-          msg.payload = logLines;
-          currentNode.send(msg);
-        });
-      } else if (payload.topic.toLowerCase() === 'clearlog') {
-        this.bridge.clearlog().then(function(response) {
-          msg.payload = response;
-          currentNode.send(msg);
-        });
-      } else if (payload.topic.toLowerCase() === 'list') {
-        this.bridge.list().then(function(response) {
-          msg.payload = response;
-          currentNode.send(msg);
-        });
-      }
-      return;
-    }
-  };
-  NukiBridge.prototype.handleEvent = function(uuid, event) {
-    let msg;
-    const node = this;
-    try {
-      msg = JSON.parse(event);
-    } catch (err) {
-      msg = event;
-    }
-    node.log('Nuki Payload: ' + JSON.stringify(msg));
 
-    for (let i = 0; i < this._nukiNodes.length; i++) {
-      if (this._nukiNodes[i].id !== uuid) {
-        continue;
-      }
-      const underControl = this._nukiNodes[i];
-      for (let x = 0; x < this.nukis.length; ++x) {
-        if (this.nukis[x].nukiId != underControl.nuki) {
-          continue;
-        }
-
-        const currentNuki = this.nukis[x].nuki;
-        msg.nuki = this.nukis[x].name;
-        msg.nukiId = this.nukis[x].nukiId;
-
-        if (payload.topic.toLowerCase() === 'lockaction') {
-          const action = lockActions[payload.payload];
-          if (action === undefined || action === null) {
-            node.warn('Could not transform payload into action: ' +
-             payload.payload);
-            return;
-          }
-          currentNuki.lockState().then(function(lockState) {
-            const state = getLockState(lockState);
-            node.log('current lock state: ' + state + '(' + lockState + ')' +
-            ', action is ' + action + '(' + payload.payload + ')');
-            if (lockState === lockStates.UNCALIBRATED ||
-              lockState === lockStates.UNDEFINED) {
-              // uncalibrated and undefined status should be avoided
-              msg.payload = {'error':
-                'could not process action! lock is in state ' + lockState};
-              underControl.send(msg);
-              return;
-            }
-
-            currentNuki.lockAction(action).then(function(status) {
-              msg.payload = status;
-              underControl.send(msg);
-              return;
-            })
-	    .catch(function(err) {
-	      msg.payload = {'error': 'failed sending lock action command'};
-	      underControl.send(msg);
-	      return;
-	    });
-          })
-	  .catch(function(err) {
-	    msg.payload = {'error': 'can not get lock state'};
-	    underControl.send(msg);
-	    return;
-	  });
-        } else if (payload.topic.toLowerCase() === 'lockstatus') {
-          currentNuki.lockState().then(function(lockState) {
-            const state = getLockState(lockState);
-            msg.payload = {
-              state: state,
-              value: lockState,
-            };
-            underControl.send(msg);
-            return;
-          })
-	  .catch(function(err) {
-	    msg.payload = {'error': 'can not get lock state'};
-	    underControl.send(msg);
-	    return;
-	  });
-        }
-      }
-    }
-    msg.payload = {'error': 'Could not find a lock'};
-    node.send(msg);
-  };
 
   RED.nodes.registerType('nuki-bridge', NukiBridge, {
     credentials: {
@@ -244,7 +131,9 @@ module.exports = function(RED) {
     RED.nodes.createNode(this, config);
     const node = this;
     node.bridge = RED.nodes.getNode(config.bridge);
-    node.nuki = config.nuki;
+    node.nukiId = config.nuki;
+    node.attachHandlers();
+
     if (node.bridge) {
       node.bridge.registerNukiNode(node);
       this.on('close', function(done) {
@@ -254,11 +143,106 @@ module.exports = function(RED) {
         done();
       });
       this.on('input', function(msg) {
-        node.bridge.handleEvent(node.id, msg);
+        node.handleEvent(msg);
       });
     }
   }
   RED.nodes.registerType('nuki-lock-control', NukiLockControl);
+
+  NukiLockControl.prototype.attachHandlers = function() {
+    const node = this;
+    const currentNuki = node.bridge.getNuki(node.nukiId);
+    if (!currentNuki) {
+      return;
+    }
+    currentNuki.on('action',
+        function gotAction(state, response) {
+          node.log('action: ' + state);
+          msg = {payload:
+                  {
+                    state: state,
+                    response: response,
+                  },
+          };
+          node.send(msg);
+        });
+    currentNuki.on(nukiBridgeApi.lockState.LOCKED,
+        function gotLocked(response) {
+          node.log('locked ' + response);
+          msg = {payload:
+                  {
+                    state: nukiBridgeApi.lockAction.LOCKED,
+                    response: response,
+                  },
+          };
+          node.send(msg);
+        });
+    currentNuki.on(nukiBridgeApi.lockState.UNLOCKED,
+        function gotUnLocked(response) {
+          node.log('unlocked ' + response);
+
+          msg = {payload:
+                  {
+                    state: nukiBridgeApi.lockAction.LOCKED,
+                    response: response,
+                  },
+          };
+          node.send(msg);
+        });
+  };
+
+  NukiLockControl.prototype.handleEvent = function(event) {
+    let msg;
+    const node = this;
+    try {
+      msg = JSON.parse(event);
+    } catch (err) {
+      msg = event;
+    }
+    node.log('Nuki Payload: ' + JSON.stringify(msg));
+
+    const currentNuki = node.bridge.getNuki(node.nukiId);
+    msg.nuki = currentNuki.name;
+    msg.nukiId = node.nukiId;
+
+    if (msg.topic.toLowerCase() === 'lockaction') {
+      const action = lockActions[msg.payload];
+      if (action === undefined || action === null) {
+        node.warn('Could not transform payload into action: ' +
+          msg.payload);
+        return;
+      }
+      currentNuki.lockState().then(function(lockState) {
+        const state = getLockState(lockState);
+        node.log('current lock state: ' + state + '(' + lockState + ')' +
+        ', action is ' + action + '(' + msg.payload + ')');
+        if (lockState === lockStates.UNCALIBRATED ||
+          lockState === lockStates.UNDEFINED) {
+          // uncalibrated and undefined status should be avoided
+          msg.payload = {'error':
+            'could not process action! lock is in state ' + lockState};
+          node.send(msg);
+          return;
+        }
+
+        currentNuki.lockAction(action).then(function(status) {
+          msg.payload = status;
+          node.send(msg);
+          return;
+        });
+      });
+    } else if (msg.topic.toLowerCase() === 'lockstatus') {
+      currentNuki.lockState().then(function(lockState) {
+        const state = getLockState(lockState);
+        msg.payload = {
+          state: state,
+          value: lockState,
+        };
+        underControl.send(msg);
+        return;
+      });
+    }
+  };
 
   /**
    * control a nuki bridge
@@ -278,9 +262,54 @@ module.exports = function(RED) {
         done();
       });
       this.on('input', function(msg) {
-        node.bridge.handleBridgeEvent(node.id, msg);
+        node.handleBridgeEvent(msg);
       });
     }
   }
   RED.nodes.registerType('nuki-bridge-control', NukiBridgeControl);
+
+  NukiBridgeControl.prototype.handleBridgeEvent = function(event) {
+    let msg;
+    try {
+      msg = JSON.parse(event);
+    } catch (err) {
+      msg = event;
+    }
+    const node = this;
+    msg.bridge=currentNode.name;
+
+    if (msg.topic.toLowerCase() === 'reboot') {
+      node.bridge.bridge.reboot().then(function(response) {
+        msg.payload = response;
+        currentNode.send(msg);
+      });
+    } else if (msg.topic.toLowerCase() === 'fwupdate') {
+      node.bridge.bridge.fwupdate().then(function(response) {
+        msg.payload = response;
+        currentNode.send(msg);
+      });
+    } else if (msg.topic.toLowerCase() === 'info') {
+      node.bridge.bridge.info().then(function(response) {
+        msg.payload = response;
+        currentNode.send(msg);
+      });
+    } else if (msg.topic.toLowerCase() === 'log') {
+      const offset = undefined;
+      const count = undefined;
+      node.bridge.bridge.log(offset, count).then(function(logLines) {
+        msg.payload = logLines;
+        currentNode.send(msg);
+      });
+    } else if (msg.topic.toLowerCase() === 'clearlog') {
+      node.bridge.bridge.clearlog().then(function(response) {
+        msg.payload = response;
+        currentNode.send(msg);
+      });
+    } else if (msg.topic.toLowerCase() === 'list') {
+      node.bridge.bridge.list().then(function(response) {
+        msg.payload = response;
+        currentNode.send(msg);
+      });
+    }
+  };
 };
