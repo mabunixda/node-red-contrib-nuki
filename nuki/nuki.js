@@ -71,26 +71,25 @@ module.exports = function(RED) {
         node.credentials.token);
     node.bridge.list().then(function listNukis(nukis) {
       node.nukis = nukis;
-      node.log('Got ' + node.nukis.length + ' nukis from bridge ' + node.host + " at already registered " + node._nukiNodes.length);
-
-      for( let x = 0; x < node._nukiNodes.length; ++x) {
-        let current = node._nukiNodes[x];
-        current.attachHandlers()
+      node.log('Got ' + node.nukis.length +
+                ' nukis from bridge '+ node.host +
+                ' at already registered ' + node._nukiNodes.length);
+      for (let x = 0; x < node._nukiNodes.length; ++x) {
+        const current = node._nukiNodes[x];
+        current.attachHandlers();
       }
-
     });
   }
 
   NukiBridge.prototype.getNuki = function(nukiId) {
     const node = this;
-    for(let x = 0; x <node.nukis.length; ++x) {
-      if(node.nukis[x].nukiId == nukiId) {
+    for (let x = 0; x <node.nukis.length; ++x) {
+      if (node.nukis[x].nukiId == nukiId) {
         return node.nukis[x].nuki;
       }
     }
     return undefined;
-  }
-
+  };
 
   NukiBridge.prototype.registerNukiNode = function(handler) {
     this._nukiNodes.push(handler);
@@ -132,7 +131,7 @@ module.exports = function(RED) {
     const node = this;
     node.bridge = RED.nodes.getNode(config.bridge);
     node.nukiId = config.nuki;
-    node.attachHandlers()
+    node.attachHandlers();
 
     if (node.bridge) {
       node.bridge.registerNukiNode(node);
@@ -151,13 +150,13 @@ module.exports = function(RED) {
 
   NukiLockControl.prototype.attachHandlers = function() {
     const node = this;
-    const currentNuki = node.bridge.getNuki(node.nukiId)
-    if(!currentNuki) {
-      return
+    const currentNuki = node.bridge.getNuki(node.nukiId);
+    if (!currentNuki) {
+      return;
     }
     currentNuki.on('action',
         function gotAction(state, response) {
-          node.log("action: " + state)
+          node.log('action: ' + state);
           msg = {payload:
                   {
                     state: state,
@@ -168,7 +167,7 @@ module.exports = function(RED) {
         });
     currentNuki.on(nukiBridgeApi.lockState.LOCKED,
         function gotLocked(response) {
-          node.log("locked " + response)
+          node.log('locked ' + response);
           msg = {payload:
                   {
                     state: nukiBridgeApi.lockAction.LOCKED,
@@ -179,7 +178,7 @@ module.exports = function(RED) {
         });
     currentNuki.on(nukiBridgeApi.lockState.UNLOCKED,
         function gotUnLocked(response) {
-          node.log("unlocked " + response)
+          node.log('unlocked ' + response);
 
           msg = {payload:
                   {
@@ -189,8 +188,7 @@ module.exports = function(RED) {
           };
           node.send(msg);
         });
-
-  }
+  };
 
   NukiLockControl.prototype.handleEvent = function(event) {
     let msg;
@@ -202,7 +200,7 @@ module.exports = function(RED) {
     }
     node.log('Nuki Payload: ' + JSON.stringify(msg));
 
-    const currentNuki = node.bridge.getNuki(node.nukiId)
+    const currentNuki = node.bridge.getNuki(node.nukiId);
     msg.nuki = currentNuki.name;
     msg.nukiId = node.nukiId;
 
