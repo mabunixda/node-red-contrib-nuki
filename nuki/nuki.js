@@ -228,7 +228,17 @@ module.exports = function(RED) {
           msg.payload = status;
           node.send(msg);
           return;
+        })
+        .catch(function(err) {
+          msg.payload = {'error': 'failed sending lock action command'};
+          node.send(msg);
+          return;
         });
+      })
+      .catch(function(err) {
+        msg.payload = {'error': 'can not get lock state'};
+        node.send(msg);
+        return;
       });
     } else if (msg.topic.toLowerCase() === 'lockstatus') {
       currentNuki.lockState().then(function(lockState) {
@@ -237,7 +247,12 @@ module.exports = function(RED) {
           state: state,
           value: lockState,
         };
-        underControl.send(msg);
+        node.send(msg);
+        return;
+      })
+      .catch(function(err) {
+        msg.payload = {'error': 'can not get lock state'};
+        node.send(msg);
         return;
       });
     }
