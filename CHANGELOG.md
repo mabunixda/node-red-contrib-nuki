@@ -1,3 +1,22 @@
+<a name="v1.0.2"></a>
+# [v1.0.2](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.0.2) - 23 Aug 2021
+
+## 1.0.2 (2021-08-23)
+
+#### Bug Fixes
+
+* messy gh action (ddb572f4)
+* linting and pr changes (#29) (68b3d5b4)
+
+#### Code Refactoring
+
+* code update to integrate callbacks (#27) (778ae837)
+
+
+
+[Changes][v1.0.2]
+
+
 <a name="v1.0.1"></a>
 # [v1.0.1](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.0.1) - 07 Jul 2021
 
@@ -38,6 +57,7 @@ initial published version on npm.
 [Changes][0.2.0]
 
 
+[v1.0.2]: https://github.com/mabunixda/node-red-contrib-nuki/compare/v1.0.1...v1.0.2
 [v1.0.1]: https://github.com/mabunixda/node-red-contrib-nuki/compare/v1.0.0...v1.0.1
 [v1.0.0]: https://github.com/mabunixda/node-red-contrib-nuki/compare/0.2.0...v1.0.0
 [0.2.0]: https://github.com/mabunixda/node-red-contrib-nuki/tree/0.2.0
