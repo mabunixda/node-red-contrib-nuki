@@ -228,14 +228,12 @@ module.exports = function(RED) {
           msg.payload = status;
           node.send(msg);
           return;
-        })
-        .catch(function(err) {
+        }).catch(function(err) {
           msg.payload = {'error': 'failed sending lock action command'};
           node.send(msg);
           return;
         });
-      })
-      .catch(function(err) {
+      }).catch(function(err) {
         msg.payload = {'error': 'can not get lock state'};
         node.send(msg);
         return;
@@ -249,8 +247,7 @@ module.exports = function(RED) {
         };
         node.send(msg);
         return;
-      })
-      .catch(function(err) {
+      }).catch(function(err) {
         msg.payload = {'error': 'can not get lock state'};
         node.send(msg);
         return;
