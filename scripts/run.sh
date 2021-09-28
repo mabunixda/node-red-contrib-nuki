@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cmd="podman"
-has_podman=$(hash docker 2> /dev/null)
+$(hash docker 2> /dev/null)
 if [ "$?" == "0" ]; then
     cmd="docker"
 fi
