@@ -286,7 +286,7 @@ module.exports = function(RED) {
     } catch (err) {
       msg = event;
     }
-    const node = this;
+    const currentNode = this;
     msg.bridge=currentNode.name;
 
     if (msg.topic.toLowerCase() === 'reboot') {
