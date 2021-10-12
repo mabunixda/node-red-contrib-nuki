@@ -286,40 +286,40 @@ module.exports = function(RED) {
     } catch (err) {
       msg = event;
     }
-    const currentNode = this;
-    msg.bridge=currentNode.name;
+    const node = this;
+    msg.bridge=node.name;
 
     if (msg.topic.toLowerCase() === 'reboot') {
       node.bridge.bridge.reboot().then(function(response) {
         msg.payload = response;
-        currentNode.send(msg);
+        node.send(msg);
       });
     } else if (msg.topic.toLowerCase() === 'fwupdate') {
       node.bridge.bridge.fwupdate().then(function(response) {
         msg.payload = response;
-        currentNode.send(msg);
+        node.send(msg);
       });
     } else if (msg.topic.toLowerCase() === 'info') {
       node.bridge.bridge.info().then(function(response) {
         msg.payload = response;
-        currentNode.send(msg);
+        node.send(msg);
       });
     } else if (msg.topic.toLowerCase() === 'log') {
       const offset = undefined;
       const count = undefined;
       node.bridge.bridge.log(offset, count).then(function(logLines) {
         msg.payload = logLines;
-        currentNode.send(msg);
+        node.send(msg);
       });
     } else if (msg.topic.toLowerCase() === 'clearlog') {
       node.bridge.bridge.clearlog().then(function(response) {
         msg.payload = response;
-        currentNode.send(msg);
+        node.send(msg);
       });
     } else if (msg.topic.toLowerCase() === 'list') {
       node.bridge.bridge.list().then(function(response) {
         msg.payload = response;
-        currentNode.send(msg);
+        node.send(msg);
       });
     }
   };
