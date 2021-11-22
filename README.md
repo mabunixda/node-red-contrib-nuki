@@ -4,10 +4,10 @@
 
 ![Build and Publish](https://github.com/mabunixda/node-red-contrib-nuki/workflows/Build%20and%20Publish/badge.svg)
 
-This node can control Nuki Smart Locks with the help of Nuki Bridges. 
+This node can control Nuki Smart Locks with the help of Nuki Bridges.
 Also Nuki Bridges can be handled by the node. It uses [nuki-bridge-api](https://github.com/Mik13/nuki-bridge-api/) based on the Nuki Bridge API documentation.
 
-It enables you to connecto to your Nuki Smart Lock over a Nuki Bridge and control it directly from node-red. 
+It enables you to connecto to your Nuki Smart Lock over a Nuki Bridge and control it directly from node-red.
 It also enables you to monitor the states and control the bridge itself.
 
 ## Nodes
@@ -82,7 +82,6 @@ Clear all logs on the bridge
 * Paging of Nuki Bridge logs
 * Nuki Smart Lock Door sensor support ( missing in nuki-bridge-api )
 * More testing in the wild
-
 
 ## Caveats
 At the moment the door sensor is not support within nuki-bridge-api. I hope to get into this topic by the next time.
