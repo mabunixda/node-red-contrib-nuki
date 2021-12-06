@@ -13,7 +13,8 @@ It also enables you to monitor the states and control the bridge itself.
 ## Installation
 
 ### Nuki Bridge API
-How to get your hardware bridge token (does not work for software bridges):
+
+How to get your hardware bridge token, which is a requirement for this node:
 
 * Call http://<bridge_ip>:<bridge_port>/auth from any browser in your network. The bridge turns on its LED.
 * Press the button of the bridge within 30 seconds.
@@ -24,14 +25,14 @@ How to get your hardware bridge token (does not work for software bridges):
        "success":true
      }
   ```
-* Use the generated token in the nuki-brige Configuration
+* Use the generated token in the nuki-brige Configuration property **token**
 
 ### Nuki Web API
 
-Do the following, to use the Nuki Web API:
+Do the following, to use the Nuki Web API - this is optional for this node!
 
 * Retrieve a token at https://web.nuki.io/de/#/admin/web-api
-* Use this token in the nuki-bridge Configuration on webToken
+* Use this token in the nuki-bridge Configuration on property **webToken**
 * Make sure your nuki devices are published on the Nuki Web API (use the Smartphone App via Settings Activate Nuki Web)
 
 
