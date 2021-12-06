@@ -183,24 +183,24 @@ module.exports = function(RED) {
           };
           node.send(msg);
         });
-    currentNuki.on(BridgeApi.lockState.LOCKED,
+    currentNuki.on(BridgeAPI.lockState.LOCKED,
         function gotLocked(response) {
           node.log('locked ' + response);
           msg = {payload:
                   {
-                    state: BridgeApi.lockAction.LOCKED,
+                    state: BridgeAPI.lockAction.LOCKED,
                     response: response,
                   },
           };
           node.send(msg);
         });
-    currentNuki.on(BridgeApi.lockState.UNLOCKED,
+    currentNuki.on(BridgeAPI.lockState.UNLOCKED,
         function gotUnLocked(response) {
           node.log('unlocked ' + response);
 
           msg = {payload:
                   {
-                    state: BridgeApi.lockAction.LOCKED,
+                    state: BridgeAPI.lockAction.LOCKED,
                     response: response,
                   },
           };
