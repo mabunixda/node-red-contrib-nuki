@@ -18,7 +18,8 @@ How to get your hardware bridge token (does not work for software bridges):
 * Call http://<bridge_ip>:<bridge_port>/auth from any browser in your network. The bridge turns on its LED.
 * Press the button of the bridge within 30 seconds.
 * Result of the browser call should be something like this:
-  ```{
+  ```
+     {
        "token":"token123",
        "success":true
      }
