@@ -32,7 +32,7 @@ How to get your hardware bridge token, which is a requirement for this node:
 Do the following, to use the Nuki Web API - this is optional for this node!
 
 * Retrieve a token at https://web.nuki.io/de/#/admin/web-api
-* Use this token in the nuki-bridge Configuration on property **webToken**
+* Use this token in the nuki-bridge Configuration on property **WEB API Token**
 * Make sure your nuki devices are published on the Nuki Web API (use the Smartphone App via Settings Activate Nuki Web)
 
 
