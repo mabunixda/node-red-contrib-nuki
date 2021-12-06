@@ -1,8 +1,8 @@
-const nukiBridgeApi = require('nuki-bridge-api');
-
 module.exports = function(RED) {
   'use strict';
   const BridgeAPI = require('nuki-bridge-api');
+  const webNuki = require('nuki-web-api');
+
   const lockStates = BridgeAPI.lockState;
   const lockActions = BridgeAPI.lockAction;
 
@@ -66,9 +66,19 @@ module.exports = function(RED) {
     node._nukiNodes = [];
     node.nukis = [];
 
+
     node.bridge = new BridgeAPI.Bridge(node.host,
         node.port,
         node.credentials.token);
+
+    if(node.credentials.webToken) {
+      node.web = new webNuki(node.credentials.webToken)
+      node.web.getNotification().then(notifications => {
+        node.readNotifications(notifications);
+      }).catch(err => {
+        node.log('getWebApi(): Error retrieving notifications: ' + err.message);
+      });
+    }
     node.bridge.list().then(function listNukis(nukis) {
       node.nukis = nukis;
       node.log('Got ' + node.nukis.length +
@@ -79,6 +89,10 @@ module.exports = function(RED) {
         current.attachHandlers();
       }
     });
+  }
+
+  NukiBridge.prototype.readNotifications(notifications) {
+
   }
 
   NukiBridge.prototype.getNuki = function(nukiId) {
@@ -165,24 +179,24 @@ module.exports = function(RED) {
           };
           node.send(msg);
         });
-    currentNuki.on(nukiBridgeApi.lockState.LOCKED,
+    currentNuki.on(BridgeApi.lockState.LOCKED,
         function gotLocked(response) {
           node.log('locked ' + response);
           msg = {payload:
                   {
-                    state: nukiBridgeApi.lockAction.LOCKED,
+                    state: BridgeApi.lockAction.LOCKED,
                     response: response,
                   },
           };
           node.send(msg);
         });
-    currentNuki.on(nukiBridgeApi.lockState.UNLOCKED,
+    currentNuki.on(BridgeApi.lockState.UNLOCKED,
         function gotUnLocked(response) {
           node.log('unlocked ' + response);
 
           msg = {payload:
                   {
-                    state: nukiBridgeApi.lockAction.LOCKED,
+                    state: BridgeApi.lockAction.LOCKED,
                     response: response,
                   },
           };
@@ -245,10 +259,24 @@ module.exports = function(RED) {
           state: state,
           value: lockState,
         };
-        node.send(msg);
-        return;
+
+        if('web'  in nuki.bridge === false) {
+          node.send(msg);
+          return;
+        }
+
+        nuki.bridge.web.getSmartlock(node.nukiId).then(function(res) {
+            msg.payload.webState = res.state
+            node.send(msg)
+          }).catch(function(err) {
+            msg.payload = {'error', 'could not get web lock state: ' + err }
+            node.log(msg.payload)
+            node.send(msg)
+          });
+        }
       }).catch(function(err) {
-        msg.payload = {'error': 'can not get lock state'};
+        msg.payload = {'error': 'can not get lock state: ' + err};
+        node.log(msg.payload)
         node.send(msg);
         return;
       });

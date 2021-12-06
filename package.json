@@ -11,12 +11,14 @@
   ],
   "node-red": {
     "nodes": {
-      "nuki": "nuki/nuki.js"
+      "nuki": "nuki/nuki.js",
+      "webnuki": "nuki/webnuki.js"
     }
   },
   "dependencies": {
     "npm-check": "^5.9.2",
-    "nuki-bridge-api": "^1.7.0"
+    "nuki-bridge-api": "^1.7.0",
+    "nuki-web-api": "^2.2.1"
   },
   "devDependencies": {
     "babel-eslint": "^10.1.0",

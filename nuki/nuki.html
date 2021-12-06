@@ -198,7 +198,7 @@ Here's an example of the lockAction <code>msg</code>-input-object:
 </script>
 <script type="text/x-red" data-help-name="nuki-bridge">
   <p>
-    This configuration node enables communication with a Nuki Bridge. 
+    This configuration node enables communication with a Nuki Bridge.
     Documentation about enabling the HTTP API on a Nuki Bridge can by found <a
       href="https://developer.nuki.io/t/bridge-discovery-http-api-activation/87">here</a>
   </p>
@@ -220,6 +220,11 @@ Here's an example of the lockAction <code>msg</code>-input-object:
         <input type="password" id="node-config-input-token">
     </div>
 
+    <div class="form-row">
+      <label for="node-config-input-webToken"><i class="fa fa-lock"></i> WEB API Token</label>
+      <input type="password" id="node-config-input-webToken">
+  </div>
+
 </script>
 <script type="text/javascript">
   RED.nodes.registerType('nuki-bridge', {
@@ -239,6 +244,10 @@ Here's an example of the lockAction <code>msg</code>-input-object:
       token: {
         type: "password",
         required: true
+      },
+      webToken: {
+        type: "password",
+        required: false
       }
     },
     icon: "nuki-bridge.svg",
