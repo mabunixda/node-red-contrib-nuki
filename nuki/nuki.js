@@ -20,6 +20,10 @@ module.exports = function(RED) {
     return undefined;
   }
 
+  RED.httpAdmin.get("/nuki-bridge/callback", function(req, res) {
+
+  })
+
 
   RED.httpAdmin.get('/nuki-bridge/list', function(req, res) {
     if (!req.query.id) {
@@ -70,14 +74,14 @@ module.exports = function(RED) {
     node.bridge = new BridgeAPI.Bridge(node.host,
         node.port,
         node.credentials.token);
-    node.log("generated bridge:" + node.credentials)
+
     if('webToken' in node.credentials) {
       node.log("generating web interaction")
       node.web = new webNuki(node.credentials.webToken)
-      node.web.getNotification().then(notifications => {
+      node.web.getNotification().then(function read(notifications) {
         node.readNotifications(notifications);
       }).catch(err => {
-        node.log('getWebApi(): Error retrieving notifications: ' + err.message);
+        node.log('webApi(): Error retrieving notifications: ' + err.message);
       });
     }
     node.bridge.list().then(function listNukis(nukis) {
@@ -93,7 +97,7 @@ module.exports = function(RED) {
   }
 
   NukiBridge.prototype.readNotifications = function(notifications) {
-    console.log(JSON.stringify(notification))
+    console.log(JSON.stringify(notifications))
   }
 
   NukiBridge.prototype.getNuki = function(nukiId) {
