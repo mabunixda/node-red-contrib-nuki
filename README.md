@@ -10,6 +10,30 @@ Also Nuki Bridges can be handled by the node. It uses [nuki-bridge-api](https://
 It enables you to connecto to your Nuki Smart Lock over a Nuki Bridge and control it directly from node-red.
 It also enables you to monitor the states and control the bridge itself.
 
+## Installation
+
+### Nuki Bridge API
+How to get your hardware bridge token (does not work for software bridges):
+
+* Call http://<bridge_ip>:<bridge_port>/auth from any browser in your network. The bridge turns on its LED.
+* Press the button of the bridge within 30 seconds.
+* Result of the browser call should be something like this:
+  ```{
+       "token":"token123",
+       "success":true
+     }
+  ```
+* Use the generated token in the nuki-brige Configuration
+
+### Nuki Web API
+
+Do the following, to use the Nuki Web API:
+
+* Retrieve a token at https://web.nuki.io/de/#/admin/web-api
+* Use this token in the nuki-bridge Configuration on webToken
+* Make sure your nuki devices are published on the Nuki Web API (use the Smartphone App via Settings Activate Nuki Web)
+
+
 ## Nodes
 
 ### Bridge
