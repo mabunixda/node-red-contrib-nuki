@@ -1,6 +1,6 @@
 
 
 docker:
-	docker build --no-cache -t mabunixda/node-red:nuki-dev .
+	docker build --no-cache -t registry.home.nitram.at/node-red:nuki-dev .
 docker-push:
-	docker push mabunixda/node-red:nuki-dev
+	docker push registry.home.nitram.at/node-red:nuki-dev

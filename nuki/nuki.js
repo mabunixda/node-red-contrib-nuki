@@ -70,8 +70,9 @@ module.exports = function(RED) {
     node.bridge = new BridgeAPI.Bridge(node.host,
         node.port,
         node.credentials.token);
-
-    if(node.credentials.webToken) {
+    node.log("generated bridge:" + node.credentials)
+    if('webToken' in node.credentials) {
+      node.log("generating web interaction")
       node.web = new webNuki(node.credentials.webToken)
       node.web.getNotification().then(notifications => {
         node.readNotifications(notifications);
@@ -91,8 +92,8 @@ module.exports = function(RED) {
     });
   }
 
-  NukiBridge.prototype.readNotifications(notifications) {
-
+  NukiBridge.prototype.readNotifications = function(notifications) {
+    console.log(JSON.stringify(notification))
   }
 
   NukiBridge.prototype.getNuki = function(nukiId) {
@@ -133,6 +134,9 @@ module.exports = function(RED) {
       token: {
         type: 'password',
       },
+      webToken: {
+        type: 'password',
+      }
     },
   });
 
@@ -260,20 +264,20 @@ module.exports = function(RED) {
           value: lockState,
         };
 
-        if('web'  in nuki.bridge === false) {
+        if('web'  in node.bridge === false) {
+          node.log("no web defined in bridge")
           node.send(msg);
           return;
         }
 
-        nuki.bridge.web.getSmartlock(node.nukiId).then(function(res) {
-            msg.payload.webState = res.state
-            node.send(msg)
+        node.bridge.web.getSmartlock(node.nukiId).then(function(res) {
+            msg.payload.webState = res;
+            node.send(msg);
           }).catch(function(err) {
-            msg.payload = {'error', 'could not get web lock state: ' + err }
+            msg.payload = {'error': 'could not get web lock state: ' + err }
             node.log(msg.payload)
             node.send(msg)
           });
-        }
       }).catch(function(err) {
         msg.payload = {'error': 'can not get lock state: ' + err};
         node.log(msg.payload)
@@ -315,7 +319,7 @@ module.exports = function(RED) {
       msg = event;
     }
     const node = this;
-    msg.bridge=node.name;
+    msg.bridgeName=node.name;
 
     if (msg.topic.toLowerCase() === 'reboot') {
       node.bridge.bridge.reboot().then(function(response) {
