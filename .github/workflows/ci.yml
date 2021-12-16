@@ -11,7 +11,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         node: [12, 14]
     steps:
@@ -49,6 +49,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           update-file: package.json
           changelog-file: CHANGELOG.md
+          prerelease: ${{ github.re == 'refs/heads/alpha' || github.ref =='refs/heads/beta' }}
       - name: Publish
         if: steps.semrel.outputs.version != ''
         run: npm publish

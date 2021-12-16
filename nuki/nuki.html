@@ -39,25 +39,36 @@
     }
   }
 </script>
-<script type="text/x-red" data-help-name="nuki-lock-control">
-  <p>
-        This node enables communication to a Nuki Smart Lock. At the moments 2 topics are supported:
-        <li>lockStatus</li>
-        <li>lockAction</li>
-        <br>
-        Here's an example of the lockStatus <code>msg</code>-input-object:
-        <pre>{
+
+<script type="text/markdown" data-help-name="nuki-lock-control">
+This node enables communication to a Nuki Smart Lock. At the moments 2 topics are supported:
+* lockStatus
+* lockAction
+  The lockAction requires the payload to be valid range of:
+  * LOCK
+  * UNLOCK
+  * UNLATCH
+  * LOCK_N_GO
+  * LOCK_N_GO_WITH_UNLATCH
+* webInfo
+
+Here's an example of the lockStatus **msg** input:
+```
+{
     payload: "",
     topic: "lockStatus"
-}</pre>
-<br>
-Here's an example of the lockAction <code>msg</code>-input-object:
-<pre>{
+}
+```
+
+Here's an example of the lockAction **msg** input:
+```
+{
     payload: "LOCK" ,
     topic: "lockAction"
-}</pre>
-    For more examples/values go to <a href="https://github.com/mabunixda/node-red-contrib-nuki">documention</a>.
-    </p>
+}
+```
+
+For more examples/values go to [documentation](https://github.com/mabunixda/node-red-contrib-nuki/")
 </script>
 <script type="text/x-red" data-template-name="nuki-lock-control">
   <div class="form-row">
@@ -68,14 +79,15 @@ Here's an example of the lockAction <code>msg</code>-input-object:
     <input type="text" id="node-input-bridge">
   </div>
   <div class="form-row">
-    <label for="node-input-nuki">
+    <label for="node-input-nuki fa-lock">
         <i class="icon-home"></i>
         Nuki
     </label>
     <select id="node-input-nuki">
     </select>
+    <input type="hidden" id="node-input-name" placeholder="Name">
   </div>
-  <input type="hidden" id="node-input-name" placeholder="Name">
+
   <div class="form-row">
     <span id="return-msg"></span>
   </div>
@@ -85,7 +97,7 @@ Here's an example of the lockAction <code>msg</code>-input-object:
 <script type="text/javascript">
   RED.nodes.registerType('nuki-lock-control', {
     category: 'nuki',
-    paletteLabel: 'control in',
+    paletteLabel: 'nuki-lock-control',
     color: '#aaaaaa',
     defaults: {
       name: {
@@ -108,28 +120,22 @@ Here's an example of the lockAction <code>msg</code>-input-object:
     },
     oneditprepare: function () {
       var node = this;
+      prepareInput();
 
-      $('#node-input-nuki').on('change', selectName);
-
-      function selectName() {
-        var val = $('#node-input-nuki option:selected').text()
-        $('#node-input-name').val(val);
-      }
+      $('#node-input-bridge').on('change', prepareInput);
 
       function prepareInput() {
-
         disableChangeEvents();
-
         getNukiList(function (data) {
           var $nukiSelect = $('#node-input-nuki');
           $nukiSelect.val(node.nuki);
-          $('#node-input-bridge').on('change', prepareInput);
         })
+        selectName();
       };
-      prepareInput();
     },
     oneditsave: function () {
-      disableChangeEvents();
+      var val = $('#node-input-nuki option:selected').text()
+      $('#node-input-name').val(val);
     },
     oneditcancel: function () {
       disableChangeEvents();
@@ -137,18 +143,16 @@ Here's an example of the lockAction <code>msg</code>-input-object:
   });
 </script>
 
-<script type="text/x-red" data-help-name="nuki-bridge-control">
-  <p>
-        This node enables communication to a Nuki Bridge. At the moments following topics are supported:
-        <li>reboot</li>
-        <li>fwupdate</li>
-        <li>info</li>
-        <li>log</li>
-        <li>clearlog</li>
-        <li>list</li>
+<script type="text/markdown" data-help-name="nuki-bridge-control">
+This node enables communication to a Nuki Bridge. At the moments following topics are supported:
+* reboot
+* fwupdate
+* info
+* log
+* clearlog
+* list
 
-    For more examples/values go to <a href="https://github.com/mabunixda/node-red-contrib-nuki">documention</a>.
-    </p>
+For more examples/values go to [documentation](https://github.com/mabunixda/node-red-contrib-nuki/")
 </script>
 <script type="text/x-red" data-template-name="nuki-bridge-control">
   <div class="form-row">
@@ -162,7 +166,6 @@ Here's an example of the lockAction <code>msg</code>-input-object:
   <div class="form-row">
     <span id="return-msg"></span>
   </div>
-
 </script>
 
 <script type="text/javascript">
@@ -196,12 +199,14 @@ Here's an example of the lockAction <code>msg</code>-input-object:
     }
   });
 </script>
-<script type="text/x-red" data-help-name="nuki-bridge">
-  <p>
-    This configuration node enables communication with a Nuki Bridge. 
-    Documentation about enabling the HTTP API on a Nuki Bridge can by found <a
-      href="https://developer.nuki.io/t/bridge-discovery-http-api-activation/87">here</a>
-  </p>
+<script type="text/markdown" data-help-name="nuki-bridge">
+This configuration node enables communication with a Nuki Bridge.
+
+## Bridge API
+Documentation about enabling the HTTP API on a Nuki Bridge can by found [online](https://github.com/mabunixda/node-red-contrib-nuki/tree/main#nuki-bridge-api).
+
+## Web API Configuration
+And also how to setup the Nuki Web API can be found [here](https://github.com/mabunixda/node-red-contrib-nuki/tree/main#nuki-web-api)
 </script>
 <script type="text/x-red" data-template-name="nuki-bridge">
   <div class="form-row node-input-bridge">
@@ -212,12 +217,26 @@ Here's an example of the lockAction <code>msg</code>-input-object:
         <label for="node-config-input-port" style="margin-left: 10px; width: 35px;">
             Port
         </label>
-        <input type="text" id="node-config-input-port" style="width:45px" placeholder="80">
+        <input type="text" id="node-config-input-port" style="width:45px" placeholder="8080">
     </div>
 
     <div class="form-row">
-        <label for="node-config-input-token"><i class="fa fa-lock"></i> Token</label>
+        <label for="node-config-input-token"><i class="fa fa-user"></i> Token</label>
         <input type="password" id="node-config-input-token">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-token"><i class="fa fa-server"></i> Bridge Callback Host</label>
+        <input type="text" id="node-config-input-callbackHost" placeholder="http://node-red/">
+    </div>
+
+    <div class="form-row">
+      <label for="node-config-input-webToken"><i class="fa fa-user"></i> WEB API Token</label>
+      <input type="password" id="node-config-input-webToken">
+    </div>
+
+    <div class="form-row">
+      <label for="node-config-input-webToken"><i class="fa fa-clock-o"></i> WEB API Fetch Interval</label>
+      <input type="text" id="node-config-input-webUpdateTimeout">
     </div>
 
 </script>
@@ -233,12 +252,25 @@ Here's an example of the lockAction <code>msg</code>-input-object:
         value: 8080,
         required: true,
         validate: RED.validators.number()
+      },
+      callbackHost: {
+        value: "",
+        required: false
+      },
+      webUpdateTimeout: {
+        value: 30,
+        required: false,
+        validate: RED.validators.number()
       }
     },
     credentials: {
       token: {
         type: "password",
         required: true
+      },
+      webToken: {
+        type: "password",
+        required: false
       }
     },
     icon: "nuki-bridge.svg",
