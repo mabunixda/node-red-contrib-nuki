@@ -10,11 +10,63 @@ Also Nuki Bridges can be handled by the node. It uses [nuki-bridge-api](https://
 It enables you to connecto to your Nuki Smart Lock over a Nuki Bridge and control it directly from node-red.
 It also enables you to monitor the states and control the bridge itself.
 
+## Installation
+
+### Nuki Bridge API
+
+How to get your hardware bridge token, which is a requirement for this node:
+
+* Call http://<bridge_ip>:<bridge_port>/auth from any browser in your network. The bridge turns on its LED.
+* Press the button of the bridge within 30 seconds.
+* Result of the browser call should be something like this:
+  ```
+     {
+       "token":"token123",
+       "success":true
+     }
+  ```
+* Use the generated token in the nuki-brige Configuration property **token**
+
+### Nuki Web API
+
+Do the following, to use the Nuki Web API - this is optional for this node!
+
+* Retrieve a token at https://web.nuki.io/de/#/admin/web-api
+* Use this token in the nuki-bridge Configuration on property **WEB API Token**
+* Make sure your nuki devices are published on the Nuki Web API (use the Smartphone App via Settings Activate Nuki Web)
+
+
 ## Nodes
 
-### Bridge
 
-Configure a Nuki Bridge connection used by other nodes
+### Bridge Configuration
+
+Configure a Nuki Bridge connection used by other nodes to communicate with the actual Nuki Bridge or Nuki Locks
+
+![Bridge Configuration](images/bridge-config.png)
+
+| Config Item | Description |
+|-|-|
+| Bridge | IP or Hostname of your actual Bridge |
+| Port | Default the bridge listens to 8080 |
+| Token | your Token of the Bridge API Access |
+| Bridge Callback Host | The actual node-red installation access - ***must*** be http, https is ***not*** supported |
+| WEB API Token | Api Token to access the Nuki Web API ( web.nuki.io ) |
+| WEB API Fetch Interval | The actual interval that is used to fetch data from web.nuki.io |
+
+### Common Control on the Nodes
+
+#### clearCallbacks
+
+Removes all registered callbacks - if this option was configured
+
+#### setupCallback
+
+Registers the callback for the actual node ( bridge or nuki )
+
+#### getCallbacks
+
+Lists all registered callbacks - this is usefull if you get the error message that there are to many callbacks registered.
 
 ### Control In
 
@@ -47,6 +99,10 @@ LOCK_N_GO
 LOCK_N_GO_WITH_UNLATCH
 ```
 
+#### webInfo
+
+Query the information available from the WebAPI - if configured. Otherwise you just get no payload in the response
+
 ### Bridge Control
 
 Send commands and queries to a Nuki Bridge.
@@ -78,10 +134,10 @@ Clear all logs on the bridge
 
 ## Todo
 
-* Support of callack provided by nuki-bridge-api to get events of Nuki Smart Lock actions
 * Paging of Nuki Bridge logs
 * Nuki Smart Lock Door sensor support ( missing in nuki-bridge-api )
-* More testing in the wild
+* Nuki 3.0 Pro
 
 ## Caveats
-At the moment the door sensor is not support within nuki-bridge-api. I hope to get into this topic by the next time.
+
+At the moment the door sensor is not support within nuki-bridge-api.

@@ -1,8 +1,7 @@
-const nukiBridgeApi = require('nuki-bridge-api');
-
 module.exports = function(RED) {
   'use strict';
   const BridgeAPI = require('nuki-bridge-api');
+  const WebNuki = require('nuki-web-api');
   const lockStates = BridgeAPI.lockState;
   const lockActions = BridgeAPI.lockAction;
 
@@ -20,8 +19,60 @@ module.exports = function(RED) {
     return undefined;
   }
 
+  RED.httpNode.post('/nuki-bridge/callback-bridge', function(req, res) {
+    console.log('node::callback Got a request on a bridge');
 
-  RED.httpAdmin.get('/nuki-bridge/list', function(req, res) {
+    if (req && !req.body) {
+      res.sendStatus(500);
+      res.end();
+      return;
+    }
+    const payload = {
+      'state': {...req.body,
+        'timestamp': new Date().toISOString().substr(0, 19) + '+00:00',
+      },
+    };
+    res.sendStatus(200);
+    res.end();
+
+    console.log('bridge::Received payload via callback: ' + JSON.stringify(payload));
+  });
+
+  RED.httpNode.post('/nuki-bridge/callback-node', function(req, res) {
+    if (req && !req.body) {
+      res.sendStatus(500);
+      res.end();
+      return;
+    }
+
+    const msg = {
+      'topic': 'lockCallback',
+      'nukiId': req.body.nukiId,
+      'payload': {...req.body,
+        'timestamp': new Date().toISOString().substr(0, 19) + '+00:00',
+      },
+    };
+
+    if (msg.payload.nukiId) {
+      delete msg.payload.nukiId;
+    }
+    RED.nodes.eachNode(function(n) {
+      if (n.type == 'nuki-lock-control') {
+        try {
+          if (n.nuki == msg.nukiId) {
+            const x = RED.nodes.getNode(n.id);
+            x.send(msg);
+          }
+        } catch (e) {
+          console.log('nuki-node::callback::error at processing callback: ' + JSON.stringify(e));
+        }
+      }
+    });
+    res.sendStatus(200);
+    res.end();
+  });
+
+  RED.httpNode.get('/nuki-bridge/list', function(req, res) {
     if (!req.query.id) {
       return res.json('');
     }
@@ -62,35 +113,101 @@ module.exports = function(RED) {
     const node = this;
     node.host = config.host;
     node.port = config.port;
+    node.webUpdateTimeout = config.webUpdateTimeout;
+    node.callbackHost = config.callbackHost;
+
     node._bridgeNodes = [];
     node._nukiNodes = [];
+    node._webNodes = [];
     node.nukis = [];
+
+    node.on('close', function(done) {
+      if (node.timer) {
+        clearInterval(node.timer);
+      }
+      done();
+    });
 
     node.bridge = new BridgeAPI.Bridge(node.host,
         node.port,
         node.credentials.token);
+
+    node.clearCallbacks();
+
     node.bridge.list().then(function listNukis(nukis) {
       node.nukis = nukis;
-      node.log('Got ' + node.nukis.length +
-                ' nukis from bridge '+ node.host +
-                ' at already registered ' + node._nukiNodes.length);
-      for (let x = 0; x < node._nukiNodes.length; ++x) {
-        const current = node._nukiNodes[x];
-        current.attachHandlers();
-      }
+      RED.log.debug('Got ' + node.nukis.length +
+        ' nukis from bridge ' + node.host +
+        ' at already registered ' + node._nukiNodes.length);
+      node.registerNukiCallbacks();
     });
+
+    if ('webToken' in node.credentials && node.credentials.webToken != '') {
+      node.web = new WebNuki(node.credentials.webToken);
+      if (node.bridge.webUpdateTimeout > 0) {
+        node.timer = setInterval(node.updateWebAPI, node.bridge.webUpdateTimeout * 1000, node);
+      }
+    }
   }
+
+  RED.nodes.registerType('nuki-bridge', NukiBridge, {
+    credentials: {
+      token: {
+        type: 'password',
+      },
+      webToken: {
+        type: 'password',
+      },
+    },
+  });
+
+  NukiBridge.prototype.notifyNukiNode = function(msg) {
+    const node = this;
+    const current = node.getNode(msg.nukiId);
+    current.send(msg);
+  };
+
+  NukiBridge.prototype.clearCallbacks = function() {
+    const node = this;
+    node.bridge.getCallbacks().map(function removeCallbacks(callback) {
+      return callback.remove();
+    });
+  };
+
+  NukiBridge.prototype.registerNukiCallbacks = function() {
+    const node = this;
+    node._nukiNodes.forEach(function(current) {
+      current.attachHandlers();
+    });
+  };
+
+
+  NukiBridge.prototype.updateWebAPI = function(node) {
+    if (node.webUpdateTimeout <= 0 ||
+      !('webToken' in node.credentials) ||
+      node.credentials.webToken === '') {
+      return;
+    }
+  };
 
   NukiBridge.prototype.getNuki = function(nukiId) {
     const node = this;
-    for (let x = 0; x <node.nukis.length; ++x) {
+    for (let x = 0; x < node.nukis.length; ++x) {
       if (node.nukis[x].nukiId == nukiId) {
         return node.nukis[x].nuki;
       }
     }
     return undefined;
   };
-
+  NukiBridge.prototype.getNode = function(nukiId) {
+    const node = this;
+    for (let x = 0; x < node._webNodes.length; ++x) {
+      if (node._webNodes[x].nukiId == nukiId) {
+        return node._webNodes[x].nuki;
+      }
+    }
+    return undefined;
+  };
   NukiBridge.prototype.registerNukiNode = function(handler) {
     this._nukiNodes.push(handler);
   };
@@ -113,15 +230,6 @@ module.exports = function(RED) {
     });
   };
 
-
-  RED.nodes.registerType('nuki-bridge', NukiBridge, {
-    credentials: {
-      token: {
-        type: 'password',
-      },
-    },
-  });
-
   /**
    * nuki lock node
    * @param {map} config nodered configuration
@@ -129,65 +237,152 @@ module.exports = function(RED) {
   function NukiLockControl(config) {
     RED.nodes.createNode(this, config);
     const node = this;
-    node.bridge = RED.nodes.getNode(config.bridge);
-    node.nukiId = config.nuki;
-    node.attachHandlers();
 
-    if (node.bridge) {
-      node.bridge.registerNukiNode(node);
-      this.on('close', function(done) {
-        if (node.bridge) {
-          node.bridge.deregisterNukiNode(node);
-        }
-        done();
-      });
-      this.on('input', function(msg) {
-        node.handleEvent(msg);
-      });
+    node.nukiId = config.nuki;
+
+    node.bridge = RED.nodes.getNode(config.bridge);
+    node.bridge.registerNukiNode(node);
+    node.attachHandlers();
+    node.on('close', function(done) {
+      if (node.bridge) {
+        node.bridge.deregisterNukiNode(node);
+      }
+      if (node.timer) {
+        clearInterval(node.timer);
+      }
+      done();
+    });
+    node.on('input', function(msg) {
+      node.handleEvent(msg);
+    });
+
+    if (node.bridge.webUpdateTimeout > 0) {
+      node.timer = setInterval(node.updateWebAPI, node.bridge.webUpdateTimeout * 1000, node);
     }
   }
+
   RED.nodes.registerType('nuki-lock-control', NukiLockControl);
+
+  NukiLockControl.prototype.setConnectionStatusMsg = function(color,
+      text,
+      shape) {
+    shape = shape || 'dot';
+    this.status({
+      fill: color,
+      shape: shape,
+      text: text,
+    });
+  };
 
   NukiLockControl.prototype.attachHandlers = function() {
     const node = this;
-    const currentNuki = node.bridge.getNuki(node.nukiId);
-    if (!currentNuki) {
+    if (!node.bridge) {
+      node.setConnectionStatusMsg('red', 'Cannot access bridge');
       return;
     }
-    currentNuki.on('action',
-        function gotAction(state, response) {
-          node.log('action: ' + state);
-          msg = {payload:
-                  {
-                    state: state,
-                    response: response,
-                  },
-          };
-          node.send(msg);
-        });
-    currentNuki.on(nukiBridgeApi.lockState.LOCKED,
-        function gotLocked(response) {
-          node.log('locked ' + response);
-          msg = {payload:
-                  {
-                    state: nukiBridgeApi.lockAction.LOCKED,
-                    response: response,
-                  },
-          };
-          node.send(msg);
-        });
-    currentNuki.on(nukiBridgeApi.lockState.UNLOCKED,
-        function gotUnLocked(response) {
-          node.log('unlocked ' + response);
+    node.setConnectionStatusMsg('blue', '');
+    const currentNuki = node.bridge.getNuki(node.nukiId);
+    if (!currentNuki) {
+      node.setConnectionStatusMsg('orange', 'attachHandlers::Could not get Nuki');
+      return;
+    }
 
-          msg = {payload:
-                  {
-                    state: nukiBridgeApi.lockAction.LOCKED,
-                    response: response,
-                  },
-          };
-          node.send(msg);
-        });
+    node.setConnectionStatusMsg('green', '');
+
+    if (node.bridge === undefined || node.bridge.callbackHost == '') {
+      node.setConnectionStatusMsg('green', 'web api is not connected');
+      setTimeout(() => {
+        node.setConnectionStatusMsg('green', '');
+      }, 1000);
+      return;
+    }
+    const url = node.bridge.callbackHost + '/nuki-bridge/callback-node';
+    RED.log.debug('node::adding callback to ' + url);
+    try {
+      node.clearCallbacks();
+      currentNuki.addCallbackUrl(url, false).then(function gotCallbackRegistered(res) {
+        RED.log.debug('node::add-callback...' + JSON.stringify(res));
+        if (!res || !res.url) {
+          throw new Error(JSON.stringify(res));
+        }
+        RED.log.debug('Callback (with URL ' + res.url + ') attached to Nuki node');
+        res.on('action',
+            function gotAction(state, response) {
+              msg = {
+                payload: {
+                  state: state,
+                  response: response,
+                },
+              };
+              node.send(msg);
+            });
+        res.on(BridgeAPI.lockState.LOCKED,
+            function gotLocked(response) {
+              msg = {
+                payload: {
+                  state: BridgeAPI.lockAction.LOCKED,
+                  response: response,
+                },
+              };
+              node.send(msg);
+            });
+        res.on(BridgeAPI.lockState.UNLOCKED,
+            function gotUnLocked(response) {
+              msg = {
+                payload: {
+                  state: BridgeAPI.lockAction.LOCKED,
+                  response: response,
+                },
+              };
+              node.send(msg);
+            });
+      }).catch((err) => {
+        node.log('Callback not attached due to error. See debug log for details.' + JSON.stringify(err));
+      });
+    } catch (e) {
+      node.log('Could not register callback: ' + JSON.stringify(e));
+    }
+  };
+
+  NukiLockControl.prototype.clearCallbacks = function() {
+    const node = this;
+    const currentNuki = node.bridge.getNuki(node.nukiId);
+    if (currentNuki === undefined) {
+      node.warn('Could not get nuki');
+      return;
+    }
+    currentNuki.getCallbacks().map(function removeCallbacks(callback) {
+      return callback.remove();
+    });
+  };
+
+  NukiLockControl.prototype.updateWebAPI = function(node) {
+    if (node.bridge.webUpdateTimeout <= 0 ||
+      !('webToken' in node.bridge.credentials) ||
+      node.bridge.credentials.webToken === '') {
+      return;
+    }
+
+    node.bridge.web.getSmartlock(node.nukiId).then(function(res) {
+      try {
+        if (node.webState !== undefined && node.webState.state.state == res.state.state) {
+          return;
+        }
+        const msg = {
+          topic: 'webUpdate',
+          nukiId: node.nukiId,
+          nukiName: node.name,
+          payload: {
+            webState: res.state,
+          },
+        };
+        node.send(msg);
+      } finally {
+        node.webState = res;
+      }
+    }).catch((err) => {
+      node.log(node.nukiId + '-error: could not get web lock state: ' + JSON.stringify(err));
+    });
   };
 
   NukiLockControl.prototype.handleEvent = function(event) {
@@ -198,59 +393,82 @@ module.exports = function(RED) {
     } catch (err) {
       msg = event;
     }
-    node.log('Nuki Payload: ' + JSON.stringify(msg));
 
     const currentNuki = node.bridge.getNuki(node.nukiId);
-    msg.nuki = currentNuki.name;
+    if (currentNuki === undefined) {
+      node.warn('Could not get nuki');
+      return;
+    }
     msg.nukiId = node.nukiId;
+    msg.nukiName = node.name;
 
     if (msg.topic.toLowerCase() === 'lockaction') {
       const action = lockActions[msg.payload];
       if (action === undefined || action === null) {
         node.warn('Could not transform payload into action: ' +
-          msg.payload);
+          JSON.stringify(msg.payload));
         return;
       }
       currentNuki.lockState().then(function(lockState) {
-        const state = getLockState(lockState);
-        node.log('current lock state: ' + state + '(' + lockState + ')' +
-        ', action is ' + action + '(' + msg.payload + ')');
         if (lockState === lockStates.UNCALIBRATED ||
           lockState === lockStates.UNDEFINED) {
           // uncalibrated and undefined status should be avoided
-          msg.payload = {'error':
-            'could not process action! lock is in state ' + lockState};
+          msg.payload = {
+            'error': 'could not process action! lock is in state ' + lockState,
+          };
           node.send(msg);
           return;
         }
-
         currentNuki.lockAction(action).then(function(status) {
           msg.payload = status;
           node.send(msg);
           return;
         }).catch(function(err) {
-          msg.payload = {'error': 'failed sending lock action command'};
+          msg.payload = {
+            'error': 'failed sending lock action command: ' + JSON.stringify(err),
+          };
           node.send(msg);
           return;
         });
       }).catch(function(err) {
-        msg.payload = {'error': 'can not get lock state'};
+        msg.payload = {
+          'error': 'can not get lock state: ' + JSON.stringify(err),
+        };
         node.send(msg);
         return;
       });
     } else if (msg.topic.toLowerCase() === 'lockstatus') {
       currentNuki.lockState().then(function(lockState) {
         const state = getLockState(lockState);
+        const webState = (node.webState !== undefined) ? node.webState.state : undefined;
         msg.payload = {
           state: state,
           value: lockState,
+          webState: webState,
         };
         node.send(msg);
-        return;
       }).catch(function(err) {
-        msg.payload = {'error': 'can not get lock state'};
+        msg.payload = {
+          'error': 'can not get lock state: ' + JSON.stringify(err),
+        };
+        // node.log(msg.payload);
         node.send(msg);
         return;
+      });
+    } else if (msg.topic.toLowerCase() === 'webinfo') {
+      msg.payload = node.webState;
+      node.send(msg);
+    } else if (msg.topic.toLowerCase() === 'clearcallbacks') {
+      node.clearCallbacks();
+      msg.payload = 'cleared';
+      node.send(msg);
+    } else if (msg.topic.toLowerCase() === 'setupcallback') {
+      node.attachHandlers();
+      node.send(msg);
+    } else if (msg.topic.toLowerCase() === 'getcallbacks') {
+      currentNuki.getCallbacks(true).then((callbacks) => {
+        msg.payload = callbacks;
+        node.send(msg);
       });
     }
   };
@@ -264,20 +482,48 @@ module.exports = function(RED) {
     RED.nodes.createNode(this, config);
     const node = this;
     node.bridge = RED.nodes.getNode(config.bridge);
-    if (node.bridge) {
-      node.bridge.registerBridgeNode(node);
-      this.on('close', function(done) {
-        if (node.bridge) {
-          node.bridge.deregisterBridgeNode(node);
-        }
-        done();
-      });
-      this.on('input', function(msg) {
-        node.handleBridgeEvent(msg);
-      });
-    }
+    node.bridge.registerBridgeNode(node);
+    node.on('close', function(done) {
+      if (node.bridge) {
+        node.bridge.deregisterBridgeNode(node);
+      }
+      done();
+    });
+    node.on('input', function(msg) {
+      node.handleBridgeEvent(msg);
+    });
+    node.setupCallback();
   }
+
+  NukiBridgeControl.prototype.setupCallback = function() {
+    const node = this;
+    if (node.bridge === undefined || node.bridge.callbackHost == '') {
+      return;
+    }
+    const url = node.bridge.callbackHost + '/nuki-bridge/callback-bridge';
+    RED.log.debug('bridge::adding callback to ' + url);
+    node.bridge.bridge.addCallbackUrl(url, false).then(function gotCallbackRegistered(res) {
+      RED.log.debug('bridge::add-callback...');
+      if (!res || !res.url) {
+        throw new Error(JSON.stringify(res));
+      }
+      RED.log.debug('Callback (with URL ' + res.url + ') attached to Nuki node');
+    }).catch((e) => {
+      node.log('Could not register callback: ' + JSON.stringify(e));
+    });
+  };
+
   RED.nodes.registerType('nuki-bridge-control', NukiBridgeControl);
+  NukiBridgeControl.prototype.setConnectionStatusMsg = function(color,
+      text,
+      shape) {
+    shape = shape || 'dot';
+    this.status({
+      fill: color,
+      shape: shape,
+      text: text,
+    });
+  };
 
   NukiBridgeControl.prototype.handleBridgeEvent = function(event) {
     let msg;
@@ -287,7 +533,6 @@ module.exports = function(RED) {
       msg = event;
     }
     const node = this;
-    msg.bridge=node.name;
 
     if (msg.topic.toLowerCase() === 'reboot') {
       node.bridge.bridge.reboot().then(function(response) {
@@ -319,6 +564,18 @@ module.exports = function(RED) {
     } else if (msg.topic.toLowerCase() === 'list') {
       node.bridge.bridge.list().then(function(response) {
         msg.payload = response;
+        node.send(msg);
+      });
+    } else if (msg.topic.toLowerCase() === 'setupcallback') {
+      node.setupCallback();
+      node.send(msg);
+    } else if (msg.topic.toLowerCase() === 'clearcallbacks') {
+      node.clearCallbacks();
+      node.setupCallback();
+      node.send(msg);
+    } else if (msg.topic.toLowerCase() === 'getcallbacks') {
+      node.bridge.bridge.getCallbacks(true).then((callbacks) => {
+        msg.payload = callbacks;
         node.send(msg);
       });
     }

@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-nuki",
-  "version": "0.5.1",
+  "version": "1.1.0",
   "description": "Interact with your nuki bridge locally",
   "license": "MIT",
   "keywords": [
@@ -15,10 +15,11 @@
     }
   },
   "dependencies": {
-    "npm-check": "^5.9.2",
-    "nuki-bridge-api": "^1.7.0"
+    "nuki-bridge-api": "1.8.0",
+    "nuki-web-api": "^2.2.1"
   },
   "devDependencies": {
+    "npm-check": "^5.9.2",
     "babel-eslint": "^10.1.0",
     "eslint": "^7.30.0",
     "eslint-config-google": "^0.14.0",

@@ -1,0 +1,14 @@
+{
+  "nukiId": 237252569,
+  "state": {
+    "deviceType": 0,
+    "nukiId": 237252569,
+    "mode": 2,
+    "state": 5,
+    "stateName": "unlatched",
+    "batteryCritical": false,
+    "batteryCharging": false,
+    "batteryChargeState": 62,
+    "timestamp": "2021-12-16T15:52:48+00:00"
+  }
+}
