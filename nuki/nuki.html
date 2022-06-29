@@ -7,6 +7,7 @@
 
     var configNodeId = $('#node-input-bridge').val();
     var node = RED.nodes.node(configNodeId);
+    var path = RED.settings.httpNodeRoot;
 
     $('#return-msg').html('').css({});
     var userMsg = 'No bridge selected or connected!';
@@ -20,7 +21,7 @@
     $nukiSelect.append('<option value=""></option>');
 
     if (node) {
-      var url = './nuki-bridge/list?id=' + node.id;
+      var url = path + 'nuki-bridge/list?id=' + node.id;
       $.getJSON(url)
         .done(function (data) {
           var userMsgCss = {
