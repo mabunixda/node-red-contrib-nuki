@@ -87,7 +87,10 @@ For more examples/values go to [documentation](https://github.com/mabunixda/node
     </select>
     <input type="hidden" id="node-input-name" placeholder="Name">
   </div>
-
+    <div class="form-row">
+        <label for="node-config-input-clearCallbacks"><i class="fa fa-server"></i>Clear Callbacks</label>
+        <input type="checkbox" id="node-config-input-clearCallbacks" placeholder="true">
+    </div>
   <div class="form-row">
     <span id="return-msg"></span>
   </div>
@@ -106,6 +109,10 @@ For more examples/values go to [documentation](https://github.com/mabunixda/node
       nuki: {
         value: '',
         required: true
+      },
+      clearCallbacks: {
+        value: true,
+        required: false
       },
       bridge: {
         type: 'nuki-bridge',
@@ -228,7 +235,10 @@ And also how to setup the Nuki Web API can be found [here](https://github.com/ma
         <label for="node-config-input-token"><i class="fa fa-server"></i> Bridge Callback Host</label>
         <input type="text" id="node-config-input-callbackHost" placeholder="http://node-red/">
     </div>
-
+    <div class="form-row">
+        <label for="node-config-input-clearCallbacks"><i class="fa fa-server"></i>Clear Callbacks</label>
+        <input type="checkbox" id="node-config-input-clearCallbacks" placeholder="true">
+    </div>
     <div class="form-row">
       <label for="node-config-input-webToken"><i class="fa fa-user"></i> WEB API Token</label>
       <input type="password" id="node-config-input-webToken">
@@ -255,6 +265,10 @@ And also how to setup the Nuki Web API can be found [here](https://github.com/ma
       },
       callbackHost: {
         value: "",
+        required: false
+      },
+      clearCallbacks: {
+        value: true,
         required: false
       },
       webUpdateTimeout: {
