@@ -1,3 +1,17 @@
+<a name="v1.2.0"></a>
+# [v1.2.0](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.2.0) - 29 Jun 2022
+
+## 1.2.0 (2022-06-29)
+
+#### Feature
+
+* Doc update and clearCallbacks flag (#44) (b0d635d4)
+
+
+
+[Changes][v1.2.0]
+
+
 <a name="v1.1.1"></a>
 # [v1.1.1](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.1.1) - 14 Mar 2022
 
@@ -113,6 +127,7 @@ initial published version on npm.
 [Changes][0.2.0]
 
 
+[v1.2.0]: https://github.com/mabunixda/node-red-contrib-nuki/compare/v1.1.1...v1.2.0
 [v1.1.1]: https://github.com/mabunixda/node-red-contrib-nuki/compare/v1.1.0...v1.1.1
 [v1.1.0]: https://github.com/mabunixda/node-red-contrib-nuki/compare/v1.0.4...v1.1.0
 [v1.0.4]: https://github.com/mabunixda/node-red-contrib-nuki/compare/v1.0.3...v1.0.4
