@@ -115,6 +115,7 @@ module.exports = function(RED) {
     node.port = config.port;
     node.webUpdateTimeout = config.webUpdateTimeout;
     node.callbackHost = config.callbackHost;
+    node.clearCallbacks = config.clearCallbacks;
 
     node._bridgeNodes = [];
     node._nukiNodes = [];
@@ -132,7 +133,9 @@ module.exports = function(RED) {
         node.port,
         node.credentials.token);
 
-    node.clearCallbacks();
+    if (node.clearCallbacks) {
+      node.clearCallbacks();
+    }
 
     node.bridge.list().then(function listNukis(nukis) {
       node.nukis = nukis;
@@ -239,6 +242,7 @@ module.exports = function(RED) {
     const node = this;
 
     node.nukiId = config.nuki;
+    node.clearCallbacks = node.clearCallbacks;
 
     node.bridge = RED.nodes.getNode(config.bridge);
     node.bridge.registerNukiNode(node);
@@ -299,7 +303,9 @@ module.exports = function(RED) {
     const url = node.bridge.callbackHost + '/nuki-bridge/callback-node';
     RED.log.debug('node::adding callback to ' + url);
     try {
-      node.clearCallbacks();
+      if (node.clearCallbacks) {
+        node.clearCallbacks();
+      }
       currentNuki.addCallbackUrl(url, false).then(function gotCallbackRegistered(res) {
         RED.log.debug('node::add-callback...' + JSON.stringify(res));
         if (!res || !res.url) {
