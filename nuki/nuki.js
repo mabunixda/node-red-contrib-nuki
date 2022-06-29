@@ -242,7 +242,7 @@ module.exports = function(RED) {
     const node = this;
 
     node.nukiId = config.nuki;
-    node.clearCallbacks = node.clearCallbacks
+    node.clearCallbacks = node.clearCallbacks;
 
     node.bridge = RED.nodes.getNode(config.bridge);
     node.bridge.registerNukiNode(node);
@@ -303,7 +303,7 @@ module.exports = function(RED) {
     const url = node.bridge.callbackHost + '/nuki-bridge/callback-node';
     RED.log.debug('node::adding callback to ' + url);
     try {
-      if(node.clearCallbacks) {
+      if (node.clearCallbacks) {
         node.clearCallbacks();
       }
       currentNuki.addCallbackUrl(url, false).then(function gotCallbackRegistered(res) {
