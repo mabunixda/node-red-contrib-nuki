@@ -1,291 +1,173 @@
 /**
- * NukiBridgeControl class for managing Nuki bridge operations
- */
-
-/**
- * NukiBridgeControl class for handling bridge-level operations
+ * Simplified Bridge Control with efficient operation handling
  */
 class NukiBridgeControl {
-  /**
-   * Creates a new NukiBridgeControl instance
-   * @param {object} RED - Node-RED runtime object
-   * @param {object} config - Node configuration
-   */
   constructor(RED, config) {
     RED.nodes.createNode(this, config);
-
-    this.RED = RED;
+    
     this.bridge = RED.nodes.getNode(config.bridge);
-
-    this.setupNode();
-  }
-
-  /**
-   * Sets up the node with event handlers and bridge registration
-   */
-  setupNode() {
-    if (this.bridge) {
-      this.bridge.registerBridgeNode(this);
-    }
-
-    this.setupEventHandlers();
-    this.setupCallback();
-  }
-
-  /**
-   * Sets up event handlers for the node
-   */
-  setupEventHandlers() {
-    this.on("close", (done) => {
-      if (this.bridge) {
-        this.bridge.deregisterBridgeNode(this);
-      }
-      done();
-    });
-
-    this.on("input", (msg) => {
-      this.handleBridgeEvent(msg);
-    });
-  }
-
-  /**
-   * Sets connection status message
-   * @param {string} color - Status color
-   * @param {string} text - Status text
-   * @param {string} shape - Status shape (default: 'dot')
-   */
-  setConnectionStatusMsg(color, text, shape = "dot") {
-    this.status({
-      fill: color,
-      shape,
-      text,
-    });
-  }
-
-  /**
-   * Sets up callback for bridge events
-   */
-  async setupCallback() {
-    if (!this.bridge?.callbackHost) {
+    if (!this.bridge) {
+      this.status({ fill: 'red', shape: 'ring', text: 'Missing bridge config' });
       return;
     }
 
-    const url = `${this.bridge.callbackHost}/nuki-bridge/callback-bridge`;
-    this.RED.log.debug(`bridge::adding callback to ${url}`);
+    // Efficient bridge handlers mapping for cleaner dispatch
+    this.BRIDGE_HANDLERS = {
+      info: this.handleInfo.bind(this),
+      list: this.handleList.bind(this),
+      reboot: this.handleReboot.bind(this),
+      fwupdate: this.handleFwUpdate.bind(this),
+      addcallback: this.handleAddCallback.bind(this),
+      listcallback: this.handleListCallback.bind(this),
+      deletecallback: this.handleDeleteCallback.bind(this),
+      log: this.handleLog.bind(this)
+    };
 
-    try {
-      const res = await this.bridge.bridge.addCallbackUrl(url, false);
+    // Register with bridge and setup input handler
+    this.bridge.registerBridgeNode(this);
+    this.on('input', this.handleInput.bind(this));
+    this.on('close', this.handleClose.bind(this));
 
-      if (!res?.url) {
-        throw new Error(JSON.stringify(res));
-      }
-
-      this.RED.log.debug(
-        `Callback (with URL ${res.url}) attached to Nuki bridge`,
-      );
-    } catch (error) {
-      this.log(`Could not register callback: ${JSON.stringify(error)}`);
-    }
+    this.status({ fill: 'green', shape: 'dot', text: 'Ready' });
   }
 
   /**
-   * Clears all callbacks for the bridge
+   * Unified input handler using efficient topic dispatch
    */
-  async clearCallbacks() {
+  async handleInput(msg) {
+    const topic = msg.topic;
+    const handler = this.BRIDGE_HANDLERS[topic];
+    
+    if (!handler) {
+      this.sendResponse(msg, `Unknown topic: ${topic}`, true);
+      return;
+    }
+
     try {
-      const callbacks = await this.bridge.bridge.getCallbacks(true);
-      await Promise.all(callbacks.map((callback) => callback.remove()));
+      await handler(msg);
     } catch (error) {
-      this.RED.log.error(`Failed to clear callbacks: ${error.message}`);
+      this.error(error.message);
+      this.sendResponse(msg, `Bridge operation failed: ${error.message}`, true);
     }
   }
 
   /**
-   * Handles incoming bridge events/messages
-   * @param {object} event - Incoming event/message
+   * Efficient response sender - unified method for all responses
    */
-  async handleBridgeEvent(event) {
-    let msg;
-
-    try {
-      msg = typeof event === "string" ? JSON.parse(event) : event;
-    } catch (error) {
-      msg = event;
-    }
-
-    const topic = msg.topic?.toLowerCase();
-
-    switch (topic) {
-      case "reboot":
-        await this.handleReboot(msg);
-        break;
-      case "fwupdate":
-        await this.handleFirmwareUpdate(msg);
-        break;
-      case "info":
-        await this.handleInfo(msg);
-        break;
-      case "log":
-        await this.handleLog(msg);
-        break;
-      case "clearlog":
-        await this.handleClearLog(msg);
-        break;
-      case "list":
-        await this.handleList(msg);
-        break;
-      case "setupcallback":
-        await this.handleSetupCallback(msg);
-        break;
-      case "clearcallbacks":
-        await this.handleClearCallbacks(msg);
-        break;
-      case "getcallbacks":
-        await this.handleGetCallbacks(msg);
-        break;
-      default:
-        this.warn(`Unknown bridge topic: ${topic}`);
-    }
+  sendResponse(msg, payload, isError = false) {
+    msg.payload = isError ? { error: payload } : payload;
+    this.send(msg);
   }
 
   /**
-   * Handles bridge reboot request
-   * @param {object} msg - Message object
+   * Generic bridge operation executor - reduces code duplication
    */
-  async handleReboot(msg) {
-    try {
-      const response = await this.bridge.bridge.reboot();
-      msg.payload = response;
-      this.send(msg);
-    } catch (error) {
-      msg.payload = { error: `Reboot failed: ${error.message}` };
-      this.send(msg);
+  async executeBridgeOperation(operation, ...args) {
+    if (!this.bridge?.bridge?.[operation]) {
+      throw new Error(`Bridge operation '${operation}' not available`);
     }
+    return await this.bridge.bridge[operation](...args);
   }
 
   /**
-   * Handles firmware update request
-   * @param {object} msg - Message object
-   */
-  async handleFirmwareUpdate(msg) {
-    try {
-      const response = await this.bridge.bridge.fwupdate();
-      msg.payload = response;
-      this.send(msg);
-    } catch (error) {
-      msg.payload = { error: `Firmware update failed: ${error.message}` };
-      this.send(msg);
-    }
-  }
-
-  /**
-   * Handles bridge info request
-   * @param {object} msg - Message object
+   * Bridge operation handlers - simplified and efficient
    */
   async handleInfo(msg) {
     try {
-      const response = await this.bridge.bridge.info();
-      msg.payload = response;
-      this.send(msg);
+      const result = await this.executeBridgeOperation('info');
+      this.sendResponse(msg, result);
     } catch (error) {
-      msg.payload = { error: `Info request failed: ${error.message}` };
-      this.send(msg);
+      this.sendResponse(msg, `Failed to get bridge info: ${error.message}`, true);
     }
   }
 
-  /**
-   * Handles bridge log request
-   * @param {object} msg - Message object
-   */
-  async handleLog(msg) {
-    try {
-      const logLines = await this.bridge.bridge.log(undefined, undefined);
-      msg.payload = logLines;
-      this.send(msg);
-    } catch (error) {
-      msg.payload = { error: `Log request failed: ${error.message}` };
-      this.send(msg);
-    }
-  }
-
-  /**
-   * Handles clear log request
-   * @param {object} msg - Message object
-   */
-  async handleClearLog(msg) {
-    try {
-      const response = await this.bridge.bridge.clearlog();
-      msg.payload = response;
-      this.send(msg);
-    } catch (error) {
-      msg.payload = { error: `Clear log failed: ${error.message}` };
-      this.send(msg);
-    }
-  }
-
-  /**
-   * Handles device list request
-   * @param {object} msg - Message object
-   */
   async handleList(msg) {
     try {
-      const response = await this.bridge.bridge.list();
-      msg.payload = response;
-      this.send(msg);
+      const result = await this.executeBridgeOperation('list');
+      this.sendResponse(msg, result);
     } catch (error) {
-      msg.payload = { error: `List request failed: ${error.message}` };
-      this.send(msg);
+      this.sendResponse(msg, `Failed to list devices: ${error.message}`, true);
+    }
+  }
+
+  async handleReboot(msg) {
+    try {
+      const result = await this.executeBridgeOperation('reboot');
+      this.sendResponse(msg, result);
+    } catch (error) {
+      this.sendResponse(msg, `Failed to reboot bridge: ${error.message}`, true);
+    }
+  }
+
+  async handleFwUpdate(msg) {
+    try {
+      const result = await this.executeBridgeOperation('fwupdate');
+      this.sendResponse(msg, result);
+    } catch (error) {
+      this.sendResponse(msg, `Failed to update firmware: ${error.message}`, true);
+    }
+  }
+
+  async handleAddCallback(msg) {
+    try {
+      const url = msg.payload?.url || this.bridge.callbackHost;
+      const result = await this.executeBridgeOperation('addCallbackUrl', url);
+      this.sendResponse(msg, result);
+    } catch (error) {
+      this.sendResponse(msg, `Failed to add callback: ${error.message}`, true);
+    }
+  }
+
+  async handleListCallback(msg) {
+    try {
+      const result = await this.executeBridgeOperation('listCallbackUrl');
+      this.sendResponse(msg, result);
+    } catch (error) {
+      this.sendResponse(msg, `Failed to list callbacks: ${error.message}`, true);
+    }
+  }
+
+  async handleDeleteCallback(msg) {
+    try {
+      const id = msg.payload?.id;
+      if (!id) {
+        this.sendResponse(msg, 'Callback ID required', true);
+        return;
+      }
+      const result = await this.executeBridgeOperation('deleteCallbackUrl', id);
+      this.sendResponse(msg, result);
+    } catch (error) {
+      this.sendResponse(msg, `Failed to delete callback: ${error.message}`, true);
+    }
+  }
+
+  async handleLog(msg) {
+    try {
+      const { count = 100, offset = 0 } = msg.payload || {};
+      const result = await this.executeBridgeOperation('log', offset, count);
+      this.sendResponse(msg, result);
+    } catch (error) {
+      this.sendResponse(msg, `Failed to get bridge log: ${error.message}`, true);
     }
   }
 
   /**
-   * Handles setup callback request
-   * @param {object} msg - Message object
+   * Cleanup on node close
    */
-  async handleSetupCallback(msg) {
-    await this.setupCallback();
-    this.send(msg);
-  }
-
-  /**
-   * Handles clear callbacks request
-   * @param {object} msg - Message object
-   */
-  async handleClearCallbacks(msg) {
-    await this.clearCallbacks();
-    await this.setupCallback();
-    msg.payload = "cleared and reset";
-    this.send(msg);
-  }
-
-  /**
-   * Handles get callbacks request
-   * @param {object} msg - Message object
-   */
-  async handleGetCallbacks(msg) {
-    try {
-      const callbacks = await this.bridge.bridge.getCallbacks(true);
-      msg.payload = callbacks;
-      this.send(msg);
-    } catch (error) {
-      msg.payload = { error: `Get callbacks failed: ${error.message}` };
-      this.send(msg);
+  handleClose() {
+    if (this.bridge?.unregisterBridgeNode) {
+      this.bridge.unregisterBridgeNode(this);
     }
   }
 }
 
 /**
- * Factory function to create NukiBridgeControl instances
- * @param {object} RED - Node-RED runtime object
- * @returns {Function} Constructor function
+ * Factory function for Node-RED registration
  */
-const createNukiBridgeControl = (RED) => {
-  return function (config) {
+function createNukiBridgeControl(RED) {
+  return function(config) {
     return new NukiBridgeControl(RED, config);
   };
-};
+}
 
-module.exports = {
-  NukiBridgeControl,
-  createNukiBridgeControl,
-};
+module.exports = { NukiBridgeControl, createNukiBridgeControl };

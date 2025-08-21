@@ -8,6 +8,26 @@ const { createNukiBridge } = require("./nukiBridge");
 const { createNukiLockControl } = require("./nukiLockControl");
 const { createNukiBridgeControl } = require("./nukiBridgeControl");
 
+// Node type configurations
+const NODE_TYPES = [
+  {
+    type: "nuki-bridge",
+    factory: createNukiBridge,
+    credentials: {
+      token: { type: "password" },
+      webToken: { type: "password" },
+    },
+  },
+  {
+    type: "nuki-lock-control",
+    factory: createNukiLockControl,
+  },
+  {
+    type: "nuki-bridge-control",
+    factory: createNukiBridgeControl,
+  },
+];
+
 /**
  * Main module registration function for Node-RED
  * @param {object} RED - Node-RED runtime object
@@ -18,24 +38,8 @@ module.exports = function (RED) {
   // Setup HTTP routes for callbacks
   setupRoutes(RED);
 
-  // Register NukiBridge node type
-  const NukiBridgeConstructor = createNukiBridge(RED);
-  RED.nodes.registerType("nuki-bridge", NukiBridgeConstructor, {
-    credentials: {
-      token: {
-        type: "password",
-      },
-      webToken: {
-        type: "password",
-      },
-    },
+  // Register all node types
+  NODE_TYPES.forEach(({ type, factory, credentials }) => {
+    RED.nodes.registerType(type, factory(RED), credentials);
   });
-
-  // Register NukiLockControl node type
-  const NukiLockControlConstructor = createNukiLockControl(RED);
-  RED.nodes.registerType("nuki-lock-control", NukiLockControlConstructor);
-
-  // Register NukiBridgeControl node type
-  const NukiBridgeControlConstructor = createNukiBridgeControl(RED);
-  RED.nodes.registerType("nuki-bridge-control", NukiBridgeControlConstructor);
 };

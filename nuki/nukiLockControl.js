@@ -1,410 +1,150 @@
 /**
- * NukiLockControl class for managing individual Nuki smart locks
- */
-
-const BridgeAPI = require("nuki-bridge-api");
-const { getLockState } = require("./utils/lockState");
-
-/**
- * NukiLockControl class for handling individual lock operations
+ * Simplified Lock Control with efficient operation handling
  */
 class NukiLockControl {
-  /**
-   * Creates a new NukiLockControl instance
-   * @param {object} RED - Node-RED runtime object
-   * @param {object} config - Node configuration
-   */
   constructor(RED, config) {
     RED.nodes.createNode(this, config);
-
-    this.RED = RED;
+    
     this.nukiId = config.nuki;
     this.bridge = RED.nodes.getNode(config.bridge);
-
-    this.setupNode();
-  }
-
-  /**
-   * Sets up the node with event handlers and bridge registration
-   */
-  setupNode() {
-    if (this.bridge) {
-      this.bridge.registerNukiNode(this);
-    }
-
-    this.attachHandlers();
-    this.setupEventHandlers();
-    this.setupWebAPITimer();
-  }
-
-  /**
-   * Sets up event handlers for the node
-   */
-  setupEventHandlers() {
-    this.on("close", (done) => {
-      if (this.bridge) {
-        this.bridge.deregisterNukiNode(this);
-      }
-      if (this.timer) {
-        clearInterval(this.timer);
-      }
-      done();
-    });
-
-    this.on("input", (msg) => {
-      this.handleEvent(msg);
-    });
-  }
-
-  /**
-   * Sets up web API update timer if configured
-   */
-  setupWebAPITimer() {
-    if (this.bridge?.webUpdateTimeout > 0) {
-      this.timer = setInterval(
-        () => this.updateWebAPI(),
-        this.bridge.webUpdateTimeout * 1000,
-      );
-    }
-  }
-
-  /**
-   * Sets connection status message
-   * @param {string} color - Status color
-   * @param {string} text - Status text
-   * @param {string} shape - Status shape (default: 'dot')
-   */
-  setConnectionStatusMsg(color, text, shape = "dot") {
-    this.status({
-      fill: color,
-      shape,
-      text,
-    });
-  }
-
-  /**
-   * Attaches handlers and callbacks for the Nuki device
-   */
-  async attachHandlers() {
+    
     if (!this.bridge) {
-      this.setConnectionStatusMsg("red", "Cannot access bridge");
+      this.status({ fill: 'red', shape: 'ring', text: 'Missing bridge config' });
       return;
     }
 
-    this.setConnectionStatusMsg("blue", "");
-    const currentNuki = this.bridge.getNuki(this.nukiId);
+    // Efficient topic handlers mapping for cleaner dispatch
+    this.TOPIC_HANDLERS = {
+      lockState: this.handleLockState.bind(this),
+      lock: this.handleLock.bind(this),
+      unlock: this.handleUnlock.bind(this),
+      unlatch: this.handleUnlatch.bind(this),
+      calibrate: this.handleCalibrate.bind(this),
+      info: this.handleInfo.bind(this)
+    };
 
-    if (!currentNuki) {
-      this.setConnectionStatusMsg(
-        "orange",
-        "attachHandlers::Could not get Nuki",
-      );
-      return;
-    }
+    // Register with bridge and setup input handler
+    this.bridge.registerNukiNode(this);
+    this.nukiInfo = this.bridge.getNuki(this.nukiId) || {};
+    
+    this.on('input', this.handleInput.bind(this));
+    this.on('close', this.handleClose.bind(this));
 
-    this.setConnectionStatusMsg("green", "");
-
-    if (!this.bridge.callbackHost) {
-      this.setConnectionStatusMsg("green", "web api is not connected");
-      setTimeout(() => {
-        this.setConnectionStatusMsg("green", "");
-      }, 1000);
-      return;
-    }
-
-    await this.setupCallback(currentNuki);
+    this.status({ fill: 'green', shape: 'dot', text: 'Ready' });
   }
 
   /**
-   * Sets up callback for the Nuki device
-   * @param {object} currentNuki - Current Nuki device
+   * Unified input handler using efficient topic dispatch
    */
-  async setupCallback(currentNuki) {
-    const url = `${this.bridge.callbackHost}/nuki-bridge/callback-node`;
-    this.RED.log.debug(`node::adding callback to ${url}`);
-
-    try {
-      if (this.clearCallbacks) {
-        await this.clearCallbacks();
-      }
-
-      const callbackRes = await currentNuki.addCallbackUrl(url, false);
-
-      if (!callbackRes?.url) {
-        throw new Error(JSON.stringify(callbackRes));
-      }
-
-      this.RED.log.debug(
-        `Callback (with URL ${callbackRes.url}) attached to Nuki node`,
-      );
-      this.setupCallbackHandlers(callbackRes);
-    } catch (error) {
-      this.log(`Callback not attached due to error: ${JSON.stringify(error)}`);
-    }
-  }
-
-  /**
-   * Sets up callback event handlers
-   * @param {object} callbackRes - Callback response object
-   */
-  setupCallbackHandlers(callbackRes) {
-    callbackRes.on("action", (state, response) => {
-      const msg = {
-        payload: {
-          state,
-          response,
-        },
-      };
-      this.send(msg);
-    });
-
-    callbackRes.on(BridgeAPI.lockState.LOCKED, (response) => {
-      const msg = {
-        payload: {
-          state: BridgeAPI.lockAction.LOCKED,
-          response,
-        },
-      };
-      this.send(msg);
-    });
-
-    callbackRes.on(BridgeAPI.lockState.UNLOCKED, (response) => {
-      const msg = {
-        payload: {
-          state: BridgeAPI.lockAction.LOCKED,
-          response,
-        },
-      };
-      this.send(msg);
-    });
-  }
-
-  /**
-   * Clears all callbacks for this device
-   */
-  async clearCallbacks() {
-    const currentNuki = this.bridge.getNuki(this.nukiId);
-
-    if (!currentNuki) {
-      this.warn("Could not get nuki");
+  async handleInput(msg) {
+    const topic = msg.topic;
+    const handler = this.TOPIC_HANDLERS[topic];
+    
+    if (!handler) {
+      this.sendResponse(msg, `Unknown topic: ${topic}`, true);
       return;
     }
 
     try {
-      const callbacks = await currentNuki.getCallbacks();
-      await Promise.all(callbacks.map((callback) => callback.remove()));
+      await handler(msg);
     } catch (error) {
-      this.RED.log.error(`Failed to clear callbacks: ${error.message}`);
+      this.error(error.message);
+      this.sendResponse(msg, `Lock operation failed: ${error.message}`, true);
     }
   }
 
   /**
-   * Updates web API data for this device
+   * Efficient response sender - unified method for all responses
    */
-  async updateWebAPI() {
-    const { webToken } = this.bridge?.credentials || {};
-
-    if (this.bridge?.webUpdateTimeout <= 0 || !webToken) {
-      return;
-    }
-
-    try {
-      const res = await this.bridge.web.getSmartlock(this.nukiId);
-
-      if (this.webState?.state?.state === res.state.state) {
-        return;
-      }
-
-      const msg = {
-        topic: "webUpdate",
-        nukiId: this.nukiId,
-        nukiName: this.name,
-        payload: {
-          webState: res.state,
-        },
-      };
-
-      this.send(msg);
-      this.webState = res;
-    } catch (error) {
-      this.log(
-        `${this.nukiId}-error: could not get web lock state: ${JSON.stringify(error)}`,
-      );
-    }
-  }
-
-  /**
-   * Handles incoming events/messages
-   * @param {object} event - Incoming event/message
-   */
-  async handleEvent(event) {
-    let msg;
-
-    try {
-      msg = typeof event === "string" ? JSON.parse(event) : event;
-    } catch (error) {
-      msg = event;
-    }
-
-    const currentNuki = this.bridge.getNuki(this.nukiId);
-
-    if (!currentNuki) {
-      this.warn("Could not get nuki");
-      return;
-    }
-
-    msg.nukiId = this.nukiId;
-    msg.nukiName = this.name;
-
-    const topic = msg.topic?.toLowerCase();
-
-    switch (topic) {
-      case "lockaction":
-        await this.handleLockAction(msg, currentNuki);
-        break;
-      case "lockstatus":
-        await this.handleLockStatus(msg, currentNuki);
-        break;
-      case "webinfo":
-        this.handleWebInfo(msg);
-        break;
-      case "clearcallbacks":
-        await this.handleClearCallbacks(msg);
-        break;
-      case "setupcallback":
-        await this.handleSetupCallback(msg);
-        break;
-      case "getcallbacks":
-        await this.handleGetCallbacks(msg, currentNuki);
-        break;
-      default:
-        this.warn(`Unknown topic: ${topic}`);
-    }
-  }
-
-  /**
-   * Handles lock action requests
-   * @param {object} msg - Message object
-   * @param {object} currentNuki - Current Nuki device
-   */
-  async handleLockAction(msg, currentNuki) {
-    const BridgeAPI = require("nuki-bridge-api");
-    const action = BridgeAPI.lockAction[msg.payload];
-
-    if (!action) {
-      this.warn(
-        `Could not transform payload into action: ${JSON.stringify(msg.payload)}`,
-      );
-      return;
-    }
-
-    try {
-      const lockState = await currentNuki.lockState();
-
-      if (
-        lockState === BridgeAPI.lockState.UNCALIBRATED ||
-        lockState === BridgeAPI.lockState.UNDEFINED
-      ) {
-        msg.payload = {
-          error: `could not process action! lock is in state ${lockState}`,
-        };
-        this.send(msg);
-        return;
-      }
-
-      const status = await currentNuki.lockAction(action);
-      msg.payload = status;
-      this.send(msg);
-    } catch (error) {
-      msg.payload = {
-        error: `failed sending lock action command: ${JSON.stringify(error)}`,
-      };
-      this.send(msg);
-    }
-  }
-
-  /**
-   * Handles lock status requests
-   * @param {object} msg - Message object
-   * @param {object} currentNuki - Current Nuki device
-   */
-  async handleLockStatus(msg, currentNuki) {
-    try {
-      const lockState = await currentNuki.lockState();
-      const state = getLockState(BridgeAPI.lockState, lockState);
-      const webState = this.webState?.state;
-
-      msg.payload = {
-        state,
-        value: lockState,
-        webState,
-      };
-
-      this.send(msg);
-    } catch (error) {
-      msg.payload = {
-        error: `can not get lock state: ${JSON.stringify(error)}`,
-      };
-      this.send(msg);
-    }
-  }
-
-  /**
-   * Handles web info requests
-   * @param {object} msg - Message object
-   */
-  handleWebInfo(msg) {
-    msg.payload = this.webState;
+  sendResponse(msg, payload, isError = false) {
+    msg.payload = isError ? { error: payload } : payload;
     this.send(msg);
   }
 
   /**
-   * Handles clear callbacks requests
-   * @param {object} msg - Message object
+   * Generic lock operation executor - reduces code duplication
    */
-  async handleClearCallbacks(msg) {
-    await this.clearCallbacks();
-    msg.payload = "cleared";
-    this.send(msg);
+  async executeLockOperation(operation, ...args) {
+    if (!this.bridge?.bridge?.[operation]) {
+      throw new Error(`Lock operation '${operation}' not available`);
+    }
+    return await this.bridge.bridge[operation](this.nukiId, ...args);
   }
 
   /**
-   * Handles setup callback requests
-   * @param {object} msg - Message object
+   * Lock operation handlers - simplified and efficient
    */
-  async handleSetupCallback(msg) {
-    await this.attachHandlers();
-    this.send(msg);
-  }
-
-  /**
-   * Handles get callbacks requests
-   * @param {object} msg - Message object
-   * @param {object} currentNuki - Current Nuki device
-   */
-  async handleGetCallbacks(msg, currentNuki) {
+  async handleLockState(msg) {
     try {
-      const callbacks = await currentNuki.getCallbacks(true);
-      msg.payload = callbacks;
-      this.send(msg);
+      const result = await this.executeLockOperation('lockState');
+      this.sendResponse(msg, result);
     } catch (error) {
-      this.RED.log.error(`Failed to get callbacks: ${error.message}`);
+      this.sendResponse(msg, `Failed to get lock state: ${error.message}`, true);
+    }
+  }
+
+  async handleLock(msg) {
+    try {
+      const result = await this.executeLockOperation('lockAction', 1); // LOCK
+      this.sendResponse(msg, result);
+    } catch (error) {
+      this.sendResponse(msg, `Failed to lock: ${error.message}`, true);
+    }
+  }
+
+  async handleUnlock(msg) {
+    try {
+      const result = await this.executeLockOperation('lockAction', 2); // UNLOCK
+      this.sendResponse(msg, result);
+    } catch (error) {
+      this.sendResponse(msg, `Failed to unlock: ${error.message}`, true);
+    }
+  }
+
+  async handleUnlatch(msg) {
+    try {
+      const result = await this.executeLockOperation('lockAction', 3); // UNLATCH
+      this.sendResponse(msg, result);
+    } catch (error) {
+      this.sendResponse(msg, `Failed to unlatch: ${error.message}`, true);
+    }
+  }
+
+  async handleCalibrate(msg) {
+    try {
+      const result = await this.executeLockOperation('calibrate');
+      this.sendResponse(msg, result);
+    } catch (error) {
+      this.sendResponse(msg, `Failed to calibrate: ${error.message}`, true);
+    }
+  }
+
+  async handleInfo(msg) {
+    try {
+      const result = await this.executeLockOperation('info');
+      this.sendResponse(msg, result);
+    } catch (error) {
+      this.sendResponse(msg, `Failed to get lock info: ${error.message}`, true);
+    }
+  }
+
+  /**
+   * Cleanup on node close
+   */
+  handleClose() {
+    if (this.bridge?.unregisterNukiNode) {
+      this.bridge.unregisterNukiNode(this);
     }
   }
 }
 
 /**
- * Factory function to create NukiLockControl instances
- * @param {object} RED - Node-RED runtime object
- * @returns {Function} Constructor function
+ * Factory function for Node-RED registration
  */
-const createNukiLockControl = (RED) => {
-  return function (config) {
+function createNukiLockControl(RED) {
+  return function(config) {
     return new NukiLockControl(RED, config);
   };
-};
+}
 
-module.exports = {
-  NukiLockControl,
-  createNukiLockControl,
-};
+module.exports = { NukiLockControl, createNukiLockControl };
