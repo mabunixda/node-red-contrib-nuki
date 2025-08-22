@@ -144,12 +144,8 @@ class NukiBridge {
    * @returns {object|undefined} Nuki device or undefined
    */
   getNuki(nukiId) {
-    for (const nukiData of this.nukis) {
-      if (nukiData.nukiId === nukiId) {
-        return nukiData.nuki;
-      }
-    }
-    return undefined;
+    const nukiData = this.nukis.find((nuki) => nuki.nukiId === nukiId);
+    return nukiData?.nuki;
   }
 
   /**
@@ -158,12 +154,8 @@ class NukiBridge {
    * @returns {object|undefined} Node or undefined
    */
   getNode(nukiId) {
-    for (const webNode of this._webNodes) {
-      if (webNode.nukiId === nukiId) {
-        return webNode.nuki;
-      }
-    }
-    return undefined;
+    const webNode = this._webNodes.find((node) => node.nukiId === nukiId);
+    return webNode?.nuki;
   }
 
   /**

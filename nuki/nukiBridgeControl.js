@@ -1,13 +1,19 @@
 /**
  * Simplified Bridge Control with efficient operation handling
  */
+const { STATUS_COLORS, STATUS_SHAPES, DEFAULTS } = require("./constants");
+
 class NukiBridgeControl {
   constructor(RED, config) {
     RED.nodes.createNode(this, config);
-    
+
     this.bridge = RED.nodes.getNode(config.bridge);
     if (!this.bridge) {
-      this.status({ fill: 'red', shape: 'ring', text: 'Missing bridge config' });
+      this.status({
+        fill: STATUS_COLORS.RED,
+        shape: STATUS_SHAPES.RING,
+        text: "Missing bridge config",
+      });
       return;
     }
 
@@ -20,15 +26,19 @@ class NukiBridgeControl {
       addcallback: this.handleAddCallback.bind(this),
       listcallback: this.handleListCallback.bind(this),
       deletecallback: this.handleDeleteCallback.bind(this),
-      log: this.handleLog.bind(this)
+      log: this.handleLog.bind(this),
     };
 
     // Register with bridge and setup input handler
     this.bridge.registerBridgeNode(this);
-    this.on('input', this.handleInput.bind(this));
-    this.on('close', this.handleClose.bind(this));
+    this.on("input", this.handleInput.bind(this));
+    this.on("close", this.handleClose.bind(this));
 
-    this.status({ fill: 'green', shape: 'dot', text: 'Ready' });
+    this.status({
+      fill: STATUS_COLORS.GREEN,
+      shape: STATUS_SHAPES.DOT,
+      text: "Ready",
+    });
   }
 
   /**
@@ -37,7 +47,7 @@ class NukiBridgeControl {
   async handleInput(msg) {
     const topic = msg.topic;
     const handler = this.BRIDGE_HANDLERS[topic];
-    
+
     if (!handler) {
       this.sendResponse(msg, `Unknown topic: ${topic}`, true);
       return;
@@ -74,16 +84,20 @@ class NukiBridgeControl {
    */
   async handleInfo(msg) {
     try {
-      const result = await this.executeBridgeOperation('info');
+      const result = await this.executeBridgeOperation("info");
       this.sendResponse(msg, result);
     } catch (error) {
-      this.sendResponse(msg, `Failed to get bridge info: ${error.message}`, true);
+      this.sendResponse(
+        msg,
+        `Failed to get bridge info: ${error.message}`,
+        true,
+      );
     }
   }
 
   async handleList(msg) {
     try {
-      const result = await this.executeBridgeOperation('list');
+      const result = await this.executeBridgeOperation("list");
       this.sendResponse(msg, result);
     } catch (error) {
       this.sendResponse(msg, `Failed to list devices: ${error.message}`, true);
@@ -92,7 +106,7 @@ class NukiBridgeControl {
 
   async handleReboot(msg) {
     try {
-      const result = await this.executeBridgeOperation('reboot');
+      const result = await this.executeBridgeOperation("reboot");
       this.sendResponse(msg, result);
     } catch (error) {
       this.sendResponse(msg, `Failed to reboot bridge: ${error.message}`, true);
@@ -101,17 +115,21 @@ class NukiBridgeControl {
 
   async handleFwUpdate(msg) {
     try {
-      const result = await this.executeBridgeOperation('fwupdate');
+      const result = await this.executeBridgeOperation("fwupdate");
       this.sendResponse(msg, result);
     } catch (error) {
-      this.sendResponse(msg, `Failed to update firmware: ${error.message}`, true);
+      this.sendResponse(
+        msg,
+        `Failed to update firmware: ${error.message}`,
+        true,
+      );
     }
   }
 
   async handleAddCallback(msg) {
     try {
       const url = msg.payload?.url || this.bridge.callbackHost;
-      const result = await this.executeBridgeOperation('addCallbackUrl', url);
+      const result = await this.executeBridgeOperation("addCallbackUrl", url);
       this.sendResponse(msg, result);
     } catch (error) {
       this.sendResponse(msg, `Failed to add callback: ${error.message}`, true);
@@ -120,10 +138,14 @@ class NukiBridgeControl {
 
   async handleListCallback(msg) {
     try {
-      const result = await this.executeBridgeOperation('listCallbackUrl');
+      const result = await this.executeBridgeOperation("listCallbackUrl");
       this.sendResponse(msg, result);
     } catch (error) {
-      this.sendResponse(msg, `Failed to list callbacks: ${error.message}`, true);
+      this.sendResponse(
+        msg,
+        `Failed to list callbacks: ${error.message}`,
+        true,
+      );
     }
   }
 
@@ -131,23 +153,32 @@ class NukiBridgeControl {
     try {
       const id = msg.payload?.id;
       if (!id) {
-        this.sendResponse(msg, 'Callback ID required', true);
+        this.sendResponse(msg, "Callback ID required", true);
         return;
       }
-      const result = await this.executeBridgeOperation('deleteCallbackUrl', id);
+      const result = await this.executeBridgeOperation("deleteCallbackUrl", id);
       this.sendResponse(msg, result);
     } catch (error) {
-      this.sendResponse(msg, `Failed to delete callback: ${error.message}`, true);
+      this.sendResponse(
+        msg,
+        `Failed to delete callback: ${error.message}`,
+        true,
+      );
     }
   }
 
   async handleLog(msg) {
     try {
-      const { count = 100, offset = 0 } = msg.payload || {};
-      const result = await this.executeBridgeOperation('log', offset, count);
+      const { count = DEFAULTS.LOG_COUNT, offset = DEFAULTS.LOG_OFFSET } =
+        msg.payload || {};
+      const result = await this.executeBridgeOperation("log", offset, count);
       this.sendResponse(msg, result);
     } catch (error) {
-      this.sendResponse(msg, `Failed to get bridge log: ${error.message}`, true);
+      this.sendResponse(
+        msg,
+        `Failed to get bridge log: ${error.message}`,
+        true,
+      );
     }
   }
 
@@ -165,7 +196,7 @@ class NukiBridgeControl {
  * Factory function for Node-RED registration
  */
 function createNukiBridgeControl(RED) {
-  return function(config) {
+  return function (config) {
     return new NukiBridgeControl(RED, config);
   };
 }

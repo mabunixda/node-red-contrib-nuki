@@ -1,36 +1,51 @@
 /**
  * Simplified Lock Control with efficient operation handling
  */
+const {
+  LOCK_ACTIONS,
+  STATUS_COLORS,
+  STATUS_SHAPES,
+  TOPICS,
+} = require("./constants");
+
 class NukiLockControl {
   constructor(RED, config) {
     RED.nodes.createNode(this, config);
-    
+
     this.nukiId = config.nuki;
     this.bridge = RED.nodes.getNode(config.bridge);
-    
+
     if (!this.bridge) {
-      this.status({ fill: 'red', shape: 'ring', text: 'Missing bridge config' });
+      this.status({
+        fill: STATUS_COLORS.RED,
+        shape: STATUS_SHAPES.RING,
+        text: "Missing bridge config",
+      });
       return;
     }
 
     // Efficient topic handlers mapping for cleaner dispatch
     this.TOPIC_HANDLERS = {
-      lockState: this.handleLockState.bind(this),
-      lock: this.handleLock.bind(this),
-      unlock: this.handleUnlock.bind(this),
-      unlatch: this.handleUnlatch.bind(this),
-      calibrate: this.handleCalibrate.bind(this),
-      info: this.handleInfo.bind(this)
+      [TOPICS.LOCK_STATE]: this.handleLockState.bind(this),
+      [TOPICS.LOCK]: this.handleLock.bind(this),
+      [TOPICS.UNLOCK]: this.handleUnlock.bind(this),
+      [TOPICS.UNLATCH]: this.handleUnlatch.bind(this),
+      [TOPICS.CALIBRATE]: this.handleCalibrate.bind(this),
+      [TOPICS.INFO]: this.handleInfo.bind(this),
     };
 
     // Register with bridge and setup input handler
     this.bridge.registerNukiNode(this);
     this.nukiInfo = this.bridge.getNuki(this.nukiId) || {};
-    
-    this.on('input', this.handleInput.bind(this));
-    this.on('close', this.handleClose.bind(this));
 
-    this.status({ fill: 'green', shape: 'dot', text: 'Ready' });
+    this.on("input", this.handleInput.bind(this));
+    this.on("close", this.handleClose.bind(this));
+
+    this.status({
+      fill: STATUS_COLORS.GREEN,
+      shape: STATUS_SHAPES.DOT,
+      text: "Ready",
+    });
   }
 
   /**
@@ -39,7 +54,7 @@ class NukiLockControl {
   async handleInput(msg) {
     const topic = msg.topic;
     const handler = this.TOPIC_HANDLERS[topic];
-    
+
     if (!handler) {
       this.sendResponse(msg, `Unknown topic: ${topic}`, true);
       return;
@@ -76,16 +91,23 @@ class NukiLockControl {
    */
   async handleLockState(msg) {
     try {
-      const result = await this.executeLockOperation('lockState');
+      const result = await this.executeLockOperation("lockState");
       this.sendResponse(msg, result);
     } catch (error) {
-      this.sendResponse(msg, `Failed to get lock state: ${error.message}`, true);
+      this.sendResponse(
+        msg,
+        `Failed to get lock state: ${error.message}`,
+        true,
+      );
     }
   }
 
   async handleLock(msg) {
     try {
-      const result = await this.executeLockOperation('lockAction', 1); // LOCK
+      const result = await this.executeLockOperation(
+        "lockAction",
+        LOCK_ACTIONS.LOCK,
+      );
       this.sendResponse(msg, result);
     } catch (error) {
       this.sendResponse(msg, `Failed to lock: ${error.message}`, true);
@@ -94,7 +116,10 @@ class NukiLockControl {
 
   async handleUnlock(msg) {
     try {
-      const result = await this.executeLockOperation('lockAction', 2); // UNLOCK
+      const result = await this.executeLockOperation(
+        "lockAction",
+        LOCK_ACTIONS.UNLOCK,
+      );
       this.sendResponse(msg, result);
     } catch (error) {
       this.sendResponse(msg, `Failed to unlock: ${error.message}`, true);
@@ -103,7 +128,10 @@ class NukiLockControl {
 
   async handleUnlatch(msg) {
     try {
-      const result = await this.executeLockOperation('lockAction', 3); // UNLATCH
+      const result = await this.executeLockOperation(
+        "lockAction",
+        LOCK_ACTIONS.UNLATCH,
+      );
       this.sendResponse(msg, result);
     } catch (error) {
       this.sendResponse(msg, `Failed to unlatch: ${error.message}`, true);
@@ -112,7 +140,7 @@ class NukiLockControl {
 
   async handleCalibrate(msg) {
     try {
-      const result = await this.executeLockOperation('calibrate');
+      const result = await this.executeLockOperation("calibrate");
       this.sendResponse(msg, result);
     } catch (error) {
       this.sendResponse(msg, `Failed to calibrate: ${error.message}`, true);
@@ -121,7 +149,7 @@ class NukiLockControl {
 
   async handleInfo(msg) {
     try {
-      const result = await this.executeLockOperation('info');
+      const result = await this.executeLockOperation("info");
       this.sendResponse(msg, result);
     } catch (error) {
       this.sendResponse(msg, `Failed to get lock info: ${error.message}`, true);
@@ -142,7 +170,7 @@ class NukiLockControl {
  * Factory function for Node-RED registration
  */
 function createNukiLockControl(RED) {
-  return function(config) {
+  return function (config) {
     return new NukiLockControl(RED, config);
   };
 }

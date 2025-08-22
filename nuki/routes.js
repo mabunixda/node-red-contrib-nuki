@@ -1,6 +1,31 @@
 /**
- * HTTP routes for Nuki Bridge callbacks and API endpoints
+ * HTTP routes for Nuki Bridge   // Bridge callback endpoint
+  RED.httpNode.post("/nuki-bridge/callback-bridge", (req, res) => {
+    if (RED.log?.debug) {
+      RED.log.debug("Bridge callback received");
+    }
+
+    if (!hasValidBody(req)) {
+      sendErrorResponse(res, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+      return;
+    }
+
+    const payload = {
+      state: {
+        ...req.body,
+        timestamp: createTimestamp(),
+      },
+    };
+
+    res.sendStatus(HTTP_STATUS.OK);
+    res.end();
+
+    if (RED.log?.debug) {
+      RED.log.debug(`Bridge payload: ${JSON.stringify(payload)}`);
+    }dpoints
  */
+
+const { HTTP_STATUS, TOPICS } = require("./constants");
 
 /**
  * Creates an ISO timestamp string for the current time
@@ -21,7 +46,10 @@ const hasValidBody = (req) => req && req.body;
  * @param {object} res - Express response object
  * @param {number} statusCode - HTTP status code
  */
-const sendErrorResponse = (res, statusCode = 500) => {
+const sendErrorResponse = (
+  res,
+  statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR,
+) => {
   res.sendStatus(statusCode);
   res.end();
 };
@@ -33,10 +61,12 @@ const sendErrorResponse = (res, statusCode = 500) => {
 const setupRoutes = (RED) => {
   // Bridge callback endpoint
   RED.httpNode.post("/nuki-bridge/callback-bridge", (req, res) => {
-    console.log("node::callback Got a request on a bridge");
+    if (RED.log?.debug) {
+      RED.log.debug("Bridge callback received");
+    }
 
     if (!hasValidBody(req)) {
-      sendErrorResponse(res, 500);
+      sendErrorResponse(res, HTTP_STATUS.INTERNAL_SERVER_ERROR);
       return;
     }
 
@@ -47,23 +77,23 @@ const setupRoutes = (RED) => {
       },
     };
 
-    res.sendStatus(200);
+    res.sendStatus(HTTP_STATUS.OK);
     res.end();
 
-    console.log(
-      `bridge::Received payload via callback: ${JSON.stringify(payload)}`,
-    );
+    if (RED.log?.debug) {
+      RED.log.debug(`Bridge payload: ${JSON.stringify(payload)}`);
+    }
   });
 
   // Node callback endpoint
   RED.httpNode.post("/nuki-bridge/callback-node", (req, res) => {
     if (!hasValidBody(req)) {
-      sendErrorResponse(res, 500);
+      sendErrorResponse(res, HTTP_STATUS.INTERNAL_SERVER_ERROR);
       return;
     }
 
     const msg = {
-      topic: "lockCallback",
+      topic: TOPICS.LOCK_CALLBACK,
       nukiId: req.body.nukiId,
       payload: {
         ...req.body,
@@ -75,24 +105,27 @@ const setupRoutes = (RED) => {
       delete msg.payload.nukiId;
     }
 
+    // More efficient node lookup with early return
+    const nukiNodes = [];
     RED.nodes.eachNode((node) => {
-      if (node.type === "nuki-lock-control") {
-        try {
-          if (node.nuki === msg.nukiId) {
-            const targetNode = RED.nodes.getNode(node.id);
-            if (targetNode) {
-              targetNode.send(msg);
-            }
-          }
-        } catch (error) {
-          console.log(
-            `nuki-node::callback::error at processing callback: ${JSON.stringify(error)}`,
-          );
+      if (node.type === "nuki-lock-control" && node.nuki === msg.nukiId) {
+        nukiNodes.push(node);
+      }
+    });
+
+    // Send message to all matching nodes
+    nukiNodes.forEach((node) => {
+      try {
+        const targetNode = RED.nodes.getNode(node.id);
+        targetNode?.send(msg);
+      } catch (error) {
+        if (RED.log?.error) {
+          RED.log.error(`Nuki node callback error: ${JSON.stringify(error)}`);
         }
       }
     });
 
-    res.sendStatus(200);
+    res.sendStatus(HTTP_STATUS.OK);
     res.end();
   });
 
