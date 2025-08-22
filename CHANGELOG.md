@@ -1,19 +1,37 @@
-<a name="v1.2.0"></a>
-# [v1.2.0](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.2.0) - 29 Jun 2022
+<a id="v1.2.1"></a>
+# [v1.2.1](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.2.1) - 2025-08-22
+
+## 1.2.1 (2025-08-22)
+
+#### Bug Fixes
+
+* Refactoring ([#52](https://github.com/mabunixda/node-red-contrib-nuki/issues/52)) (5a90b116)
+
+#### Chores
+
+* update dependencies to latest versions ([#50](https://github.com/mabunixda/node-red-contrib-nuki/issues/50)) (4bc0d181)
+
+
+
+[Changes][v1.2.1]
+
+
+<a id="v1.2.0"></a>
+# [v1.2.0](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.2.0) - 2022-06-29
 
 ## 1.2.0 (2022-06-29)
 
 #### Feature
 
-* Doc update and clearCallbacks flag (#44) (b0d635d4)
+* Doc update and clearCallbacks flag ([#44](https://github.com/mabunixda/node-red-contrib-nuki/issues/44)) (b0d635d4)
 
 
 
 [Changes][v1.2.0]
 
 
-<a name="v1.1.1"></a>
-# [v1.1.1](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.1.1) - 14 Mar 2022
+<a id="v1.1.1"></a>
+# [v1.1.1](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.1.1) - 2022-03-14
 
 ## 1.1.1 (2022-03-14)
 
@@ -26,36 +44,22 @@
 [Changes][v1.1.1]
 
 
-<a name="v1.1.0"></a>
-# [v1.1.0](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.1.0) - 16 Dec 2021
-
-## 1.1.0 (2021-12-16)
-
-#### Feature
-
-* web api + callbacks (#40) (4e2bba25)
-
-
-
-[Changes][v1.1.0]
-
-
-<a name="v1.0.4"></a>
-# [v1.0.4](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.0.4) - 22 Nov 2021
+<a id="v1.0.4"></a>
+# [v1.0.4](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.0.4) - 2021-11-22
 
 ## 1.0.4 (2021-11-22)
 
 #### Bug Fixes
 
-* pr #33 (9daf9ed3)
+* pr [#33](https://github.com/mabunixda/node-red-contrib-nuki/issues/33) (9daf9ed3)
 
 
 
 [Changes][v1.0.4]
 
 
-<a name="v1.0.3"></a>
-# [v1.0.3](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.0.3) - 28 Sep 2021
+<a id="v1.0.3"></a>
+# [v1.0.3](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.0.3) - 2021-09-28
 
 ## 1.0.3 (2021-09-28)
 
@@ -68,33 +72,33 @@
 [Changes][v1.0.3]
 
 
-<a name="v1.0.2"></a>
-# [v1.0.2](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.0.2) - 23 Aug 2021
+<a id="v1.0.2"></a>
+# [v1.0.2](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.0.2) - 2021-08-23
 
 ## 1.0.2 (2021-08-23)
 
 #### Bug Fixes
 
 * messy gh action (ddb572f4)
-* linting and pr changes (#29) (68b3d5b4)
+* linting and pr changes ([#29](https://github.com/mabunixda/node-red-contrib-nuki/issues/29)) (68b3d5b4)
 
 #### Code Refactoring
 
-* code update to integrate callbacks (#27) (778ae837)
+* code update to integrate callbacks ([#27](https://github.com/mabunixda/node-red-contrib-nuki/issues/27)) (778ae837)
 
 
 
 [Changes][v1.0.2]
 
 
-<a name="v1.0.1"></a>
-# [v1.0.1](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.0.1) - 07 Jul 2021
+<a id="v1.0.1"></a>
+# [v1.0.1](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.0.1) - 2021-07-07
 
 ## 1.0.1 (2021-07-07)
 
 #### Bug Fixes
 
-* update on issue #21 (#23) (bf64d2c6)
+* update on issue [#21](https://github.com/mabunixda/node-red-contrib-nuki/issues/21) ([#23](https://github.com/mabunixda/node-red-contrib-nuki/issues/23)) (bf64d2c6)
 
 #### Build
 
@@ -105,31 +109,31 @@
 [Changes][v1.0.1]
 
 
-<a name="v1.0.0"></a>
-# [v1.0.0](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.0.0) - 04 Mar 2021
+<a id="v1.0.0"></a>
+# [v1.0.0](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/v1.0.0) - 2021-03-04
 
 ## 1.0.0 (2021-03-04)
 
 #### Code Refactoring
 
-* gh actions update (#18) (41fcaab6)
+* gh actions update ([#18](https://github.com/mabunixda/node-red-contrib-nuki/issues/18)) (41fcaab6)
 
 
 
 [Changes][v1.0.0]
 
 
-<a name="0.2.0"></a>
-# [0.2.0](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/0.2.0) - 05 Jun 2019
+<a id="0.2.0"></a>
+# [0.2.0](https://github.com/mabunixda/node-red-contrib-nuki/releases/tag/0.2.0) - 2019-06-05
 
 initial published version on npm. 
 
 [Changes][0.2.0]
 
 
+[v1.2.1]: https://github.com/mabunixda/node-red-contrib-nuki/compare/v1.2.0...v1.2.1
 [v1.2.0]: https://github.com/mabunixda/node-red-contrib-nuki/compare/v1.1.1...v1.2.0
-[v1.1.1]: https://github.com/mabunixda/node-red-contrib-nuki/compare/v1.1.0...v1.1.1
-[v1.1.0]: https://github.com/mabunixda/node-red-contrib-nuki/compare/v1.0.4...v1.1.0
+[v1.1.1]: https://github.com/mabunixda/node-red-contrib-nuki/compare/v1.0.4...v1.1.1
 [v1.0.4]: https://github.com/mabunixda/node-red-contrib-nuki/compare/v1.0.3...v1.0.4
 [v1.0.3]: https://github.com/mabunixda/node-red-contrib-nuki/compare/v1.0.2...v1.0.3
 [v1.0.2]: https://github.com/mabunixda/node-red-contrib-nuki/compare/v1.0.1...v1.0.2
@@ -137,4 +141,4 @@ initial published version on npm.
 [v1.0.0]: https://github.com/mabunixda/node-red-contrib-nuki/compare/0.2.0...v1.0.0
 [0.2.0]: https://github.com/mabunixda/node-red-contrib-nuki/tree/0.2.0
 
- <!-- Generated by https://github.com/rhysd/changelog-from-release -->
+<!-- Generated by https://github.com/rhysd/changelog-from-release v3.9.0 -->
