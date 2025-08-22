@@ -3,7 +3,8 @@ const js = require("@eslint/js");
 module.exports = [
   {
     ...js.configs.recommended,
-    files: ["nuki/**/*.js"],
+    files: ["**/*.js"],
+    ignores: ["node_modules/**", "**/node_modules/**"],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "module",
