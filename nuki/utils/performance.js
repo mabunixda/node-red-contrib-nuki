@@ -36,19 +36,22 @@ class PerformanceTimer {
  * @returns {Function} Wrapped function
  */
 const withTiming = (func, name, logger) => {
-  return async function(...args) {
+  return async function (...args) {
     const timer = new PerformanceTimer();
     try {
       const result = await func.apply(this, args);
       const elapsed = timer.stop();
-      if (logger && elapsed > 100) { // Only log slow operations
+      if (logger && elapsed > 100) {
+        // Only log slow operations
         logger.debug(`${name} completed in ${elapsed.toFixed(2)}ms`);
       }
       return result;
     } catch (error) {
       const elapsed = timer.stop();
       if (logger) {
-        logger.error(`${name} failed after ${elapsed.toFixed(2)}ms: ${error.message}`);
+        logger.error(
+          `${name} failed after ${elapsed.toFixed(2)}ms: ${error.message}`,
+        );
       }
       throw error;
     }
@@ -63,7 +66,7 @@ const withTiming = (func, name, logger) => {
  */
 const debounce = (func, delay) => {
   let timeoutId;
-  return function(...args) {
+  return function (...args) {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => func.apply(this, args), delay);
   };
@@ -77,11 +80,11 @@ const debounce = (func, delay) => {
  */
 const throttle = (func, limit) => {
   let inThrottle;
-  return function(...args) {
+  return function (...args) {
     if (!inThrottle) {
       func.apply(this, args);
       inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
+      setTimeout(() => (inThrottle = false), limit);
     }
   };
 };

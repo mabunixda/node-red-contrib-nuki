@@ -9,7 +9,9 @@
  * @returns {object} Validation result with isValid boolean and missing array
  */
 const validateConfig = (config, requiredProps) => {
-  const missing = requiredProps.filter(prop => !config || !(prop in config) || config[prop] === '');
+  const missing = requiredProps.filter(
+    (prop) => !config || !(prop in config) || config[prop] === "",
+  );
   return {
     isValid: missing.length === 0,
     missing,
@@ -22,7 +24,7 @@ const validateConfig = (config, requiredProps) => {
  * @returns {boolean} True if message is valid
  */
 const validateMessage = (msg) => {
-  return msg && typeof msg === 'object' && 'topic' in msg;
+  return msg && typeof msg === "object" && "topic" in msg;
 };
 
 /**
@@ -31,7 +33,7 @@ const validateMessage = (msg) => {
  * @returns {boolean} True if request has valid body
  */
 const validateRequestBody = (req) => {
-  return req && req.body && typeof req.body === 'object';
+  return req && req.body && typeof req.body === "object";
 };
 
 /**
@@ -40,7 +42,7 @@ const validateRequestBody = (req) => {
  * @returns {boolean} True if ID is valid
  */
 const validateNukiId = (nukiId) => {
-  return nukiId && typeof nukiId === 'string' && nukiId.trim().length > 0;
+  return nukiId && typeof nukiId === "string" && nukiId.trim().length > 0;
 };
 
 module.exports = {
